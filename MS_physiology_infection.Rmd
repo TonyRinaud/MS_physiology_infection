@@ -102,7 +102,7 @@ treatment_prevalence_changes=ggplot(tab_cont)+
   labs(y="Count of nestlings")+
   geom_text(aes(label=Count),position = position_stack(0.5))+
   scale_fill_manual(values=c("#D0D0D0","#A8A8A8"))+
-  theme(axis.title.x = element_blank(), strip.text = element_text(size=14, face="bold"),legend.text = element_text(size=12), legend.title = element_text(size=14),axis.title.y=element_text(size=14, margin= unit(c(0, 3, 0, 0), "mm")),  axis.text=element_text(size=12))
+  theme(axis.title.x = element_blank(), strip.text = element_text(size=16, face="bold"),legend.text = element_text(size=14), legend.title = element_text(size=16),axis.title.y=element_text(size=18, margin= unit(c(0, 3, 0, 0), "mm")),  axis.text=element_text(size=16))
 
 ## plotting mean infection intensity values of nestlings across treatments
 
@@ -129,7 +129,7 @@ treatment_meaninf_changes=ggplot(tab_mean)+
                size=5)+ 
   scale_color_manual(values=c("lightgrey","black"))+
   theme_classic()+
-  theme(axis.title.x = element_blank(), legend.text = element_text(size=12), legend.title = element_text(size=14), axis.title.y=element_text(size=16, margin= unit(c(0, 3, 0, 0), "mm")),  axis.text=element_text(size=12), plot.margin = unit(c(0,0,0,30), "pt"))
+  theme(axis.title.x = element_blank(), legend.text = element_text(size=16), legend.title = element_text(size=16), axis.title.y=element_text(size=18, margin= unit(c(0, 3, 0, 0), "mm")),  axis.text=element_text(size=16), plot.margin = unit(c(0,0,0,30), "pt"))
 
 # Panel wrapping Fig2 a & b:
 
@@ -595,7 +595,7 @@ sjPlot::tab_model(lmer_br_para,lmer_bt_para,lmer_bc_para,lmer_gr_para,
 
 ```
 
-### Host health to parasitemia 
+# Host health to parasitemia 
 ```{r, warning=F,message=F}
 
 tol_resdata=data2016_2020
@@ -688,3 +688,75 @@ tolres_delta_first+tolres_delta+ plot_annotation(tag_levels = 'A')&
   theme(plot.tag = element_text(size = 16, face = "bold"))
 
 ```
+
+# Supplementary figure
+
+```{r}
+
+gg1=ggplot(data2016_2020[!data2016_2020$Diff_Inf_Class %in% NA,])+
+  aes(Diff_Inf_Class,Breathing_rate)+
+  geom_hline(yintercept = mean(data2016_2020$Breathing_rate, na.rm=T), linetype = "dashed")+
+  labs(x="", y="Breathing rate (z-transformed)")+
+  geom_jitter(color ="lightgrey", size=2, width=.3)+
+  stat_summary(fun=mean, colour="cornflowerblue", geom="errorbar", 
+               size=2.8 , width=0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x))+
+  stat_summary(fun=mean, colour="black", geom="point", 
+               size=5 ,show.legend = FALSE)+
+  stat_n_text()+
+  theme_classic()+
+  theme(legend.position="none", axis.title=element_text(size=14),  axis.text=element_text(size=12), axis.line.x = element_blank(), axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"), plot.title = element_text(hjust = 0.5, face="bold"))
+
+gg2=ggplot(data2016_2020[!data2016_2020$Diff_Inf_Class %in% NA,])+
+  aes(Diff_Inf_Class,body_temperature)+
+  geom_hline(yintercept = mean(data2016_2020$body_temperature, na.rm=T), linetype = "dashed")+
+  labs(x="", y="Body temperature (z-transformed)")+
+  geom_jitter(color ="lightgrey", size=2, width=.3)+
+  stat_summary(fun=mean, colour="cornflowerblue", geom="errorbar", 
+               size=2.8 , width=0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x))+
+  stat_summary(fun=mean, colour="black", geom="point", 
+               size=5 ,show.legend = FALSE)+
+  stat_n_text()+
+  theme_classic()+
+  theme(legend.position="none", axis.title=element_text(size=14),  axis.text=element_text(size=12), axis.line.x = element_blank(), axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"), plot.title = element_text(hjust = 0.5, face="bold"))
+
+gg3=ggplot(data2016_2020[!data2016_2020$Diff_Inf_Class %in% NA,])+
+  aes(Diff_Inf_Class,delta_body_condition)+
+  geom_hline(yintercept = mean(data2016_2020$delta_body_condition, na.rm=T), linetype = "dashed")+
+  labs(x="", y="Body condition (z-transformed)")+
+  geom_jitter(color ="lightgrey", size=2, width=.3)+
+  stat_summary(fun=mean, colour="cornflowerblue", geom="errorbar", 
+               size=2.8 , width=0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x))+
+  stat_summary(fun=mean, colour="black", geom="point", 
+               size=5 ,show.legend = FALSE)+
+  stat_n_text()+
+  theme_classic()+
+  theme(legend.position="none", axis.title=element_text(size=14),  axis.text=element_text(size=12), axis.line.x = element_blank(), axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"), plot.title = element_text(hjust = 0.5, face="bold"))
+
+gg4=ggplot(data2016_2020[!data2016_2020$Diff_Inf_Class %in% NA,])+
+  aes(Diff_Inf_Class,Growth_rate)+
+  geom_hline(yintercept = mean(data2016_2020$Growth_rate, na.rm=T), linetype = "dashed")+
+  labs(x="", y="Growth rate (z-transformed)")+
+  geom_jitter(color ="lightgrey", size=2, width=.3)+
+  stat_summary(fun=mean, colour="cornflowerblue", geom="errorbar", 
+               size=2.8 , width=0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x))+
+  stat_summary(fun=mean, colour="black", geom="point", 
+               size=5 ,show.legend = FALSE)+
+  stat_n_text()+
+  theme_classic()+
+  theme(legend.position="none", axis.title=element_text(size=14),  axis.text=element_text(size=12), axis.line.x = element_blank(), axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"), plot.title = element_text(hjust = 0.5, face="bold"))
+
+# Figure S1
+
+gg1+gg2+gg3+gg4 + plot_annotation(tag_levels = 'A')& 
+  theme(plot.tag = element_text(size = 16, face = "bold"))
+
+```
+
