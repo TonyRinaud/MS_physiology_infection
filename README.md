@@ -1,6 +1,6 @@
 # Code to analyze the effect of blood parasite infections on physiology of raptor nestlings. 
 
-<img src="plots/Fig_1_AgeEffect.png" style="display: block; margin: auto;" />
+<img src="Figs/predicted_physio_param_infection_stages.png" style="display: block; margin: auto;" />
 
 -   **MS_***.Rmd** contains the code for all analyses of this manuscript. In addition, we
     provide our data files in the folder called `data`, which should be
