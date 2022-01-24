@@ -4,7 +4,7 @@
 
 <img src="Figs/predicted_physio_param_infection_intensities.png" style="display: block; margin: auto;" />
 
--   **MS_***.Rmd** contains the code for all analyses of this manuscript. In addition, we
+-   **MS_physiology_infection.Rmd** contains the code for all analyses of this manuscript. In addition, we
     provide our data files in the folder called `data`, which should be
     placed in a subfolder of the working directory in order to repeat
     analyses.
