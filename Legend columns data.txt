@@ -1,0 +1,23 @@
+Nest: Identifier for unique nest where the nestlings hatched
+Date: Date of second sampling
+Year: Year of second sampling
+Ring_no: Ring number attributed to the nestlings at first sampling
+Infection_intensity.2: Parasitic load from microscopy estimation at second sampling
+Weight.2: Weight at second sampling in gram
+Wing.2: Wing length at second sampling in cm
+Sex: sex of the nestling determined either molecularly or morphometrics
+Breathing_rate: time in second for 30 breathings
+body_temperature: cloacal temperature measured with an digital thermometer
+TemperatureAvgC: Average temperature the day of sampling
+Sampling_rank: order of the nestling in the brood
+Treatment: Treatment group, either control or malarone-treated nestlings
+Growth_rate: daily mass gain, as the difference in weigth between the two sampling, control by the delay between sampling events
+days_resample: interval in days between sampling events 
+body_condition.2: residual variance of the regression between weight and wing length, controlled for sex, all as recorded at second sampling
+delta_body_condition: difference between body condition.2 and body condition.1
+Age_in_days: estimate age of the nestlings
+intensity_change: difference between infection intensity.2 and infection intensity.1, uninfected nestlings coded as -100
+Diff_Inf_Class: Verbal grouping of the intensity change.
+Weight.1: weigth in gram at first sampling
+body_condition.1: residual variance of the regression between weight and wing length, controlled for sex, all as recorded at first sampling
+Infection_intensity.1: Parasitic load from microscopy estimation at first sampling
