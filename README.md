@@ -8,6 +8,8 @@
 
 -   **physiology_infection_stage_full_wideformat.csv** is the data file that contains individual specific data
 
+-   **Legend columns data.txt** explains the meaning of the columns in **physiology_infection_stage_full_wideformat.csv**
+
 -   **Repeatability_temperatures.csv** contains repeated body temperatures measures
 
 -   **Figs**, a folder with all the figures displayed in the manuscript
