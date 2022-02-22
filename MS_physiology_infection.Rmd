@@ -153,7 +153,7 @@ treatment_prevalence_changes  <- ggplot(tab_cont) +
 mean_infint = data.frame(
   Sampling_rank = factor(c(rep("1",length(df$Sampling_rank)),as.character(df$Sampling_rank)),levels = c("1","2"),
                          labels  =  c("Pre-treatment","Post-treatment")),
-  Infection_intensity = as.numeric(c(as.character(df$Infection_intensity.1),as.character(df$Infection_intensity))),
+  Infection_intensity = as.numeric(c(as.character(df$Infection_intensity.1),as.character(df$Infection_intensity.2))),
   Treatment = factor(c(as.character(rep(df$Treatment,2))),levels  =  c("Control","Malarone")))
 
 ## Figure 2b
@@ -163,8 +163,8 @@ treatment_meaninf_changes = ggplot(mean_infint) +
   geom_vline(xintercept  =  "Pre-treatment", linetype = "dashed", color = 'darkgrey') +
   geom_vline(xintercept = "Post-treatment", linetype = "dashed", color = 'darkgrey') +
   labs(y = "Mean infection intensity") +
-  geom_point(aes(colour = Treatment),position = position_jitterdodge(jitter.height  =  0.1)) +
-  stat_summary(fun = mean, geom = "line",size = 2,color = c("lightgrey","black","black","lightgrey")) +
+  geom_point(aes(colour = Treatment),position = position_jitterdodge(jitter.height  =  0.1))+
+  stat_summary(fun = mean, mapping = aes(group=Treatment), geom = "line",size = 2,color = c("lightgrey","black","black","lightgrey"))+ 
   stat_summary(fun = mean, geom = "point",size = 5) +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.04, size = 2) + 
   scale_color_manual(values = c("lightgrey","black")) + 
@@ -182,7 +182,7 @@ Fig2 <- treatment_prevalence_changes +
   treatment_meaninf_changes +
   plot_annotation(tag_levels = 'A') + 
   theme(plot.tag = element_text(size = 16, face = "bold"))
-ggsave(Fig2,filename = "./Figs/efficiency_malarone.png",units = "px", width = 6000, height = 3000)
+ggsave(Fig2,filename = "./Figs/Fig2_efficiency_malarone.png",units = "px", width = 6000, height = 3000)
 
 ## Testing for difference in mean infection intensity between Pre and Post treatment
 ## -----------------------------------------------------------------------------
@@ -265,7 +265,7 @@ tab_model(
   string.stat = "t",
   pred.labels = c("Intercept","Treatment [Malarone]"),
   dv.labels = c("Breathing rate","Body temperature", "\U0394 Body condition","Growth rate"),
-  file = "./Tables/Physiological_parameters_in_decreasing_control_treated.html")
+  file = "./Tables/TableS1_Physiological_parameters_in_decreasing_control_treated.html")
 ```
 
 
@@ -459,7 +459,7 @@ The code below is used to summarise the model output and create Figure 4 and Tab
 ## -----------------------------------------------------------------------------
 fig4 <- gg1_pred + gg2_pred + gg3_pred + gg4_pred + plot_annotation(tag_levels = 'A') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
-ggsave(fig4,filename = "./Figs/predicted_physio_param_infection_stages.png",units = "px", width = 3700, height = 3700)
+ggsave(fig4,filename = "./Figs/Fig4_predicted_physio_param_infection_stages.png",units = "px", width = 3700, height = 3700)
 
 # Table 3
 ## -----------------------------------------------------------------------------
@@ -470,7 +470,7 @@ sjPlot::tab_model(
   string.stat = "t",
   df.method = "kr",
   dv.labels = c("Breathing rate","Body temperature","\U0394 Body condition","Growth rate"),
-  file = "./Tables/Table_results_lmer_physiological_parameters_p.val_kr.html")
+  file = "./Tables/Table3_results_lmer_physiological_parameters_p.val_kr.html")
 ```
 
 ## Parasitemia as explanatory variable
@@ -682,7 +682,7 @@ gg4_pred_para = ggplot(mod_gr_para) +
 fig5=gg1_pred_para+gg2_pred_para+gg3_pred_para+gg4_pred_para + plot_annotation(tag_levels = 'A')& 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 
-ggsave(fig5,filename = "./Figs/predicted_physio_param_infection_intensities.png",units = "px", width = 3700, height = 3700)
+ggsave(fig5,filename = "./Figs/Fig5_predicted_physio_param_infection_intensities.png",units = "px", width = 3700, height = 3700)
 
 # Table 4 
 
@@ -692,13 +692,14 @@ sjPlot::tab_model(lmer_br_para,lmer_bt_para,lmer_bc_para,lmer_gr_para,
                   string.stat = "t",
                   p.val = "kr",
                   dv.labels = c("Breathing rate","Body temperature","\U0394 Body condition","Growth rate"),
-                  file = "./Tables/table_results_parasitemia_lmer_physiological_parameters_p.val_kr.html")
+                  file = "./Tables/Table4_results_parasitemia_lmer_physiological_parameters_p.val_kr.html")
 
 ```
 
 ## Host health to parasitemia 
 
 ```{r, warning=F,message=F}
+# Results presented in Table 2
 
 ## Infection intensity as numerical variable
 ## -----------------------------------------------------------------------------
@@ -773,7 +774,7 @@ g=arrangeGrob(g)
 fig3=tolres + 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 
-ggsave(g,filename = "./Figs/delta_body_condition_to_parasitemia_second.png",units = "px", width = 3700, height = 2800)
+ggsave(g,filename = "./Figs/Fig3_delta_body_condition_to_parasitemia_second.png",units = "px", width = 3700, height = 2800)
 ```
 
 ## Supplementary figures
@@ -850,7 +851,7 @@ gg4 = ggplot(df[!df$Diff_Inf_Class %in% NA,]) +
 figs1=gg1+gg2+gg3+gg4 + plot_annotation(tag_levels = 'A')& 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 
-ggsave(figs1,filename = "./Figs/observed_physio_param_infection_stages.png",units = "px", width = 3500, height = 3800)
+ggsave(figs1,filename = "./Figs/FigS1_observed_physio_param_infection_stages.png",units = "px", width = 3500, height = 3800)
 
 ## Plotting observed values across infection intensities
 ## ----------------------------------------------------------------------------- 
@@ -936,7 +937,7 @@ gg8 = ggplot(df[!df$Infection_intensity.2 %in% NA,]) +
 figs2=gg5+gg6+gg7+gg8 + plot_annotation(tag_levels = 'A')& 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 
-ggsave(figs2,filename = "./Figs/observed_physio_param_parasitemia.png",units = "px", width = 3500, height = 3800)
+ggsave(figs2,filename = "./Figs/FigS2_observed_physio_param_parasitemia.png",units = "px", width = 3500, height = 3800)
 
 
 ## Plotting effect sizes of 'infection stages' models
@@ -973,7 +974,7 @@ pm4=plot_model(lmer_gr,
 figs3=pm1+pm2+pm3+pm4 + plot_annotation(tag_levels = 'A')& 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 
-ggsave(figs3,filename = "./Figs/effect_sizes_param_stages.png",units = "px", width = 3500, height = 3800)
+ggsave(figs3,filename = "./Figs/FigS3_effect_sizes_param_stages.png",units = "px", width = 3500, height = 3800)
 
 ## Plotting effect sizes of 'infection intensities' models
 ## ----------------------------------------------------------------------------- 
@@ -1008,7 +1009,7 @@ pm8=plot_model(lmer_gr_para,
 figs4=pm5+pm6+pm7+pm8 + plot_annotation(tag_levels = 'A')& 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 
-ggsave(figs4,filename = "./Figs/effect_sizes_param_intensities.png",units = "px", width = 3500, height = 3800)
+ggsave(figs4,filename = "./Figs/FigS4_effect_sizes_param_intensities.png",units = "px", width = 3500, height = 3800)
 ```
 ## Estimating measurment error of body temperature
 

@@ -548,7 +548,7 @@ treatment_prevalence_changes &lt;- ggplot(tab_cont) + aes(Timepoint, Count, fill
 mean_infint = data.frame(Sampling_rank = factor(c(rep(&quot;1&quot;, length(df$Sampling_rank)),
     as.character(df$Sampling_rank)), levels = c(&quot;1&quot;, &quot;2&quot;), labels = c(&quot;Pre-treatment&quot;,
     &quot;Post-treatment&quot;)), Infection_intensity = as.numeric(c(as.character(df$Infection_intensity.1),
-    as.character(df$Infection_intensity))), Treatment = factor(c(as.character(rep(df$Treatment,
+    as.character(df$Infection_intensity.2))), Treatment = factor(c(as.character(rep(df$Treatment,
     2))), levels = c(&quot;Control&quot;, &quot;Malarone&quot;)))
 
 ## Figure 2b
@@ -558,19 +558,20 @@ treatment_meaninf_changes = ggplot(mean_infint) + aes(Sampling_rank, Infection_i
     color = &quot;darkgrey&quot;) + geom_vline(xintercept = &quot;Post-treatment&quot;, linetype = &quot;dashed&quot;,
     color = &quot;darkgrey&quot;) + labs(y = &quot;Mean infection intensity&quot;) + geom_point(aes(colour = Treatment),
     position = position_jitterdodge(jitter.height = 0.1)) + stat_summary(fun = mean,
-    geom = &quot;line&quot;, size = 2, color = c(&quot;lightgrey&quot;, &quot;black&quot;, &quot;black&quot;, &quot;lightgrey&quot;)) +
-    stat_summary(fun = mean, geom = &quot;point&quot;, size = 5) + stat_summary(fun.data = mean_se,
-    geom = &quot;errorbar&quot;, width = 0.04, size = 2) + scale_color_manual(values = c(&quot;lightgrey&quot;,
-    &quot;black&quot;)) + theme_classic() + theme(axis.title.x = element_blank(), legend.text = element_text(size = 16),
-    legend.title = element_text(size = 16), axis.title.y = element_text(size = 18,
-        margin = unit(c(0, 3, 0, 0), &quot;mm&quot;)), axis.text = element_text(size = 16),
-    plot.margin = unit(c(0, 0, 0, 30), &quot;pt&quot;))
+    mapping = aes(group = Treatment), geom = &quot;line&quot;, size = 2, color = c(&quot;lightgrey&quot;,
+        &quot;black&quot;, &quot;black&quot;, &quot;lightgrey&quot;)) + stat_summary(fun = mean, geom = &quot;point&quot;,
+    size = 5) + stat_summary(fun.data = mean_se, geom = &quot;errorbar&quot;, width = 0.04,
+    size = 2) + scale_color_manual(values = c(&quot;lightgrey&quot;, &quot;black&quot;)) + theme_classic() +
+    theme(axis.title.x = element_blank(), legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16), axis.title.y = element_text(size = 18,
+            margin = unit(c(0, 3, 0, 0), &quot;mm&quot;)), axis.text = element_text(size = 16),
+        plot.margin = unit(c(0, 0, 0, 30), &quot;pt&quot;))
 
 ## Panel wrapping Fig2 a &amp; b:
 ## -----------------------------------------------------------------------------
 Fig2 &lt;- treatment_prevalence_changes + treatment_meaninf_changes + plot_annotation(tag_levels = &quot;A&quot;) +
     theme(plot.tag = element_text(size = 16, face = &quot;bold&quot;))
-ggsave(Fig2, filename = &quot;./Figs/efficiency_malarone.png&quot;, units = &quot;px&quot;, width = 6000,
+ggsave(Fig2, filename = &quot;./Figs/Fig2_efficiency_malarone.png&quot;, units = &quot;px&quot;, width = 6000,
     height = 3000)
 
 ## Testing for difference in mean infection intensity between Pre and Post
@@ -736,7 +737,7 @@ summary(lm_d4)
 ## -----------------------------------------------------------------------------
 tab_model(lm_d1, lm_d2, lm_d3, lm_d4, show.reflvl = T, show.ci50 = T, show.stat = T,
     string.stat = &quot;t&quot;, pred.labels = c(&quot;Intercept&quot;, &quot;Treatment [Malarone]&quot;), dv.labels = c(&quot;Breathing rate&quot;,
-        &quot;Body temperature&quot;, &quot;&lt;U+0394&gt; Body condition&quot;, &quot;Growth rate&quot;), file = &quot;./Tables/Physiological_parameters_in_decreasing_control_treated.html&quot;)</code></pre>
+        &quot;Body temperature&quot;, &quot;&lt;U+0394&gt; Body condition&quot;, &quot;Growth rate&quot;), file = &quot;./Tables/TableS1_Physiological_parameters_in_decreasing_control_treated.html&quot;)</code></pre>
 <table style="border-collapse:collapse; border:none;">
 <tr>
 <th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; ">
@@ -1095,14 +1096,14 @@ gg4_pred = ggplot(mod_gr) + aes(x, predicted) + geom_hline(yintercept = mean(mod
 ## -----------------------------------------------------------------------------
 fig4 &lt;- gg1_pred + gg2_pred + gg3_pred + gg4_pred + plot_annotation(tag_levels = &quot;A&quot;) &amp;
     theme(plot.tag = element_text(size = 16, face = &quot;bold&quot;))
-ggsave(fig4, filename = &quot;./Figs/predicted_physio_param_infection_stages.png&quot;, units = &quot;px&quot;,
-    width = 3700, height = 3700)
+ggsave(fig4, filename = &quot;./Figs/Fig4_predicted_physio_param_infection_stages.png&quot;,
+    units = &quot;px&quot;, width = 3700, height = 3700)
 
 # Table 3
 # -----------------------------------------------------------------------------
 sjPlot::tab_model(lmer_br, lmer_bt, lmer_bc, lmer_gr, show.ci50 = T, show.stat = T,
     string.stat = &quot;t&quot;, df.method = &quot;kr&quot;, dv.labels = c(&quot;Breathing rate&quot;, &quot;Body temperature&quot;,
-        &quot;&lt;U+0394&gt; Body condition&quot;, &quot;Growth rate&quot;), file = &quot;./Tables/Table_results_lmer_physiological_parameters_p.val_kr.html&quot;)</code></pre>
+        &quot;&lt;U+0394&gt; Body condition&quot;, &quot;Growth rate&quot;), file = &quot;./Tables/Table3_results_lmer_physiological_parameters_p.val_kr.html&quot;)</code></pre>
 <table style="border-collapse:collapse; border:none;">
 <tr>
 <th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; ">
@@ -2278,14 +2279,14 @@ gg4_pred_para = ggplot(mod_gr_para) + aes(as.factor(mod_gr_para$x), mod_gr_para$
 fig5 = gg1_pred_para + gg2_pred_para + gg3_pred_para + gg4_pred_para + plot_annotation(tag_levels = &quot;A&quot;) &amp;
     theme(plot.tag = element_text(size = 16, face = &quot;bold&quot;))
 
-ggsave(fig5, filename = &quot;./Figs/predicted_physio_param_infection_intensities.png&quot;,
+ggsave(fig5, filename = &quot;./Figs/Fig5_predicted_physio_param_infection_intensities.png&quot;,
     units = &quot;px&quot;, width = 3700, height = 3700)
 
 # Table 4
 
 sjPlot::tab_model(lmer_br_para, lmer_bt_para, lmer_bc_para, lmer_gr_para, show.ci50 = T,
     show.stat = T, string.stat = &quot;t&quot;, p.val = &quot;kr&quot;, dv.labels = c(&quot;Breathing rate&quot;,
-        &quot;Body temperature&quot;, &quot;&lt;U+0394&gt; Body condition&quot;, &quot;Growth rate&quot;), file = &quot;./Tables/table_results_parasitemia_lmer_physiological_parameters_p.val_kr.html&quot;)</code></pre>
+        &quot;Body temperature&quot;, &quot;&lt;U+0394&gt; Body condition&quot;, &quot;Growth rate&quot;), file = &quot;./Tables/Table4_results_parasitemia_lmer_physiological_parameters_p.val_kr.html&quot;)</code></pre>
 <table style="border-collapse:collapse; border:none;">
 <tr>
 <th style="border-top: double; text-align:center; font-style:normal; font-weight:bold; padding:0.2cm;  text-align:left; ">
@@ -3343,7 +3344,9 @@ Marginal R<sup>2</sup> / Conditional R<sup>2</sup>
 </div>
 <div id="host-health-to-parasitemia" class="section level2">
 <h2>Host health to parasitemia</h2>
-<pre class="r"><code>## Infection intensity as numerical variable
+<pre class="r"><code># Results presented in Table 2
+
+## Infection intensity as numerical variable
 ## -----------------------------------------------------------------------------
 tol_resdata = df
 tol_resdata$Infection_intensity.2 = as.numeric(tol_resdata$Infection_intensity.2)
@@ -3454,8 +3457,8 @@ g = arrangeGrob(g)
 
 fig3 = tolres + theme(plot.tag = element_text(size = 16, face = &quot;bold&quot;))
 
-ggsave(g, filename = &quot;./Figs/delta_body_condition_to_parasitemia_second.png&quot;, units = &quot;px&quot;,
-    width = 3700, height = 2800)</code></pre>
+ggsave(g, filename = &quot;./Figs/Fig3_delta_body_condition_to_parasitemia_second.png&quot;,
+    units = &quot;px&quot;, width = 3700, height = 2800)</code></pre>
 </div>
 <div id="supplementary-figures" class="section level2">
 <h2>Supplementary figures</h2>
@@ -3517,8 +3520,8 @@ gg4 = ggplot(df[!df$Diff_Inf_Class %in% NA, ]) + aes(Diff_Inf_Class, Growth_rate
 figs1 = gg1 + gg2 + gg3 + gg4 + plot_annotation(tag_levels = &quot;A&quot;) &amp; theme(plot.tag = element_text(size = 16,
     face = &quot;bold&quot;))
 
-ggsave(figs1, filename = &quot;./Figs/observed_physio_param_infection_stages.png&quot;, units = &quot;px&quot;,
-    width = 3500, height = 3800)
+ggsave(figs1, filename = &quot;./Figs/FigS1_observed_physio_param_infection_stages.png&quot;,
+    units = &quot;px&quot;, width = 3500, height = 3800)
 
 ## Plotting observed values across infection intensities
 ## -----------------------------------------------------------------------------
@@ -3577,7 +3580,7 @@ gg8 = ggplot(df[!df$Infection_intensity.2 %in% NA, ]) + aes(Infection_intensity.
 figs2 = gg5 + gg6 + gg7 + gg8 + plot_annotation(tag_levels = &quot;A&quot;) &amp; theme(plot.tag = element_text(size = 16,
     face = &quot;bold&quot;))
 
-ggsave(figs2, filename = &quot;./Figs/observed_physio_param_parasitemia.png&quot;, units = &quot;px&quot;,
+ggsave(figs2, filename = &quot;./Figs/FigS2_observed_physio_param_parasitemia.png&quot;, units = &quot;px&quot;,
     width = 3500, height = 3800)
 
 
@@ -3612,8 +3615,8 @@ pm4 = plot_model(lmer_gr, sort.est = T, se = T, title = &quot;Growth rate&quot;,
 figs3 = pm1 + pm2 + pm3 + pm4 + plot_annotation(tag_levels = &quot;A&quot;) &amp; theme(plot.tag = element_text(size = 16,
     face = &quot;bold&quot;))
 
-ggsave(figs3, filename = &quot;./Figs/effect_sizes_param_stages.png&quot;, units = &quot;px&quot;, width = 3500,
-    height = 3800)
+ggsave(figs3, filename = &quot;./Figs/FigS3_effect_sizes_param_stages.png&quot;, units = &quot;px&quot;,
+    width = 3500, height = 3800)
 
 ## Plotting effect sizes of &#39;infection intensities&#39; models
 ## -----------------------------------------------------------------------------
@@ -3650,7 +3653,7 @@ pm8 = plot_model(lmer_gr_para, sort.est = T, se = T, title = &quot;Growth rate&q
 figs4 = pm5 + pm6 + pm7 + pm8 + plot_annotation(tag_levels = &quot;A&quot;) &amp; theme(plot.tag = element_text(size = 16,
     face = &quot;bold&quot;))
 
-ggsave(figs4, filename = &quot;./Figs/effect_sizes_param_intensities.png&quot;, units = &quot;px&quot;,
+ggsave(figs4, filename = &quot;./Figs/FigS4_effect_sizes_param_intensities.png&quot;, units = &quot;px&quot;,
     width = 3500, height = 3800)</code></pre>
 </div>
 <div id="estimating-measurment-error-of-body-temperature" class="section level2">
@@ -3676,8 +3679,8 @@ rpt(Temperature ~ (1 | ID), grname = &quot;ID&quot;, data = rTemp, npermut = 100
 ## 
 ## Repeatability for ID
 ## R  = 0.906
-## SE = 0.037
-## CI = [0.814, 0.956]
+## SE = 0.036
+## CI = [0.814, 0.953]
 ## P  = 5.47e-14 [LRT]
 ##      0.001 [Permutation]
 ## Estimating the variance of error
