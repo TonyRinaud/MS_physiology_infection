@@ -382,6 +382,7 @@ library(sjmisc)
 library(tidybayes)
 library(tidyverse)
 library(wesanderson)
+library(car)
 theme_set(theme_tidybayes() + panel_border())</code></pre>
 </div>
 <div id="load-raw-data" class="section level2">
@@ -410,6 +411,7 @@ df &lt;- read.csv(&quot;./physiology_infection_stage_full_wideformat.csv&quot;, 
     mutate(Growth_rate = as.numeric(Growth_rate)) %&gt;%
     mutate(days_resample = scale(days_resample)) %&gt;%
     mutate(Age_in_days = scale(as.numeric(Age_in_days))) %&gt;%
+    mutate(intensity_change = as.numeric(intensity_change)) %&gt;%
     mutate(Diff_Inf_Class = factor(Diff_Inf_Class, levels = c(&quot;Uninfected&quot;, &quot;Increase&quot;,
         &quot;Peak&quot;, &quot;Decrease&quot;)))
 
@@ -424,113 +426,38 @@ df &lt;- arrange(df, df$Diff_Inf_Class)</code></pre>
 ## -----------------------------------------------------------------------------
 pre_treatment &lt;- with(df, table(Prevalence1, Treatment))
 prop.test(pre_treatment)
-## 
-##  2-sample test for equality of proportions with continuity correction
-## 
-## data:  pre_treatment
-## X-squared = 9.1055, df = 1, p-value = 0.002548
-## alternative hypothesis: two.sided
-## 95 percent confidence interval:
-##  0.0602973 0.3025076
-## sample estimates:
-##    prop 1    prop 2 
-## 0.7439024 0.5625000
 pairwise.prop.test(pre_treatment)
-## 
-##  Pairwise comparisons using Pairwise comparison of proportions 
-## 
-## data:  pre_treatment 
-## 
-##   0     
-## 1 0.0025
-## 
-## P value adjustment method: holm
+
 ## Build contingency table: Infection prevalence and treatment: Second sampling
 ## -----------------------------------------------------------------------------
 post_treatment &lt;- with(df, table(Prevalence2, Treatment))
 prop.test(post_treatment)
-## 
-##  2-sample test for equality of proportions with continuity correction
-## 
-## data:  post_treatment
-## X-squared = 2.3644, df = 1, p-value = 0.1241
-## alternative hypothesis: two.sided
-## 95 percent confidence interval:
-##  -0.21675868  0.02507577
-## sample estimates:
-##    prop 1    prop 2 
-## 0.6140351 0.7098765
 pairwise.prop.test(post_treatment)
-## 
-##  Pairwise comparisons using Pairwise comparison of proportions 
-## 
-## data:  post_treatment 
-## 
-##   0   
-## 1 0.12
-## 
-## P value adjustment method: holm
+
 ## Proportion of infected individuals across time points
 ## -----------------------------------------------------------------------------
 infected_treatment &lt;- matrix(c(pre_treatment[2, ], post_treatment[2, ]), nrow = 2) %&gt;%
     set_colnames(., c(&quot;Pre&quot;, &quot;Post&quot;)) %&gt;%
     set_rownames(., c(&quot;Control&quot;, &quot;Malarone&quot;))
 prop.test(infected_treatment)
-## 
-##  2-sample test for equality of proportions with continuity correction
-## 
-## data:  infected_treatment
-## X-squared = 5.6881, df = 1, p-value = 0.01708
-## alternative hypothesis: two.sided
-## 95 percent confidence interval:
-##  -0.28670744 -0.02626073
-## sample estimates:
-##    prop 1    prop 2 
-## 0.3539326 0.5104167
 pairwise.prop.test(infected_treatment)
-## 
-##  Pairwise comparisons using Pairwise comparison of proportions 
-## 
-## data:  infected_treatment 
-## 
-##          Control
-## Malarone 0.017  
-## 
-## P value adjustment method: holm
+
 ## Proportion of uninfected individuals across time points
 ## -----------------------------------------------------------------------------
 uninfected_treatment &lt;- matrix(c(pre_treatment[1, ], post_treatment[1, ]), nrow = 2) %&gt;%
     set_colnames(., c(&quot;Pre&quot;, &quot;Post&quot;)) %&gt;%
     set_rownames(., c(&quot;Control&quot;, &quot;Malarone&quot;))
 prop.test(uninfected_treatment)
-## 
-##  2-sample test for equality of proportions with continuity correction
-## 
-## data:  uninfected_treatment
-## X-squared = 4.7183, df = 1, p-value = 0.02984
-## alternative hypothesis: two.sided
-## 95 percent confidence interval:
-##  0.01294432 0.28114483
-## sample estimates:
-##    prop 1    prop 2 
-## 0.6354167 0.4883721
 pairwise.prop.test(uninfected_treatment)
-## 
-##  Pairwise comparisons using Pairwise comparison of proportions 
-## 
-## data:  uninfected_treatment 
-## 
-##          Control
-## Malarone 0.03   
-## 
-## P value adjustment method: holm
+
+
 ## Plotting count of infected / uninfected nestlings across treatments
 ## -----------------------------------------------------------------------------
 tab_cont = data.frame(Count = c(infected_treatment[1, ], uninfected_treatment[1,
-    ], infected_treatment[2, ], uninfected_treatment[2, ]), Timepoint = rep(c(&quot;Pre-treatment&quot;,
-    &quot;Post-treatment&quot;), 4), Treatment = rep(c(&quot;Control&quot;, &quot;Treatment&quot;), each = 4),
+    ], infected_treatment[2, ], uninfected_treatment[2, ]), Timepoint = rep(c(&quot;First sampling&quot;,
+    &quot;Second sampling&quot;), 4), Treatment = rep(c(&quot;Control&quot;, &quot;Treatment&quot;), each = 4),
     Prevalence = rep(rep(c(&quot;Infected&quot;, &quot;Uninfected&quot;), each = 2), 2)) %&gt;%
-    mutate(Timepoint = factor(Timepoint, levels = c(&quot;Pre-treatment&quot;, &quot;Post-treatment&quot;))) %&gt;%
+    mutate(Timepoint = factor(Timepoint, levels = c(&quot;First sampling&quot;, &quot;Second sampling&quot;))) %&gt;%
     mutate(Prevalence = factor(Prevalence, levels = c(&quot;Uninfected&quot;, &quot;Infected&quot;)))
 
 ## Create Figure 2a
@@ -546,26 +473,25 @@ treatment_prevalence_changes &lt;- ggplot(tab_cont) + aes(Timepoint, Count, fill
 ## Plotting mean infection intensity values of nestlings across treatments
 ## -----------------------------------------------------------------------------
 mean_infint = data.frame(Sampling_rank = factor(c(rep(&quot;1&quot;, length(df$Sampling_rank)),
-    as.character(df$Sampling_rank)), levels = c(&quot;1&quot;, &quot;2&quot;), labels = c(&quot;Pre-treatment&quot;,
-    &quot;Post-treatment&quot;)), Infection_intensity = as.numeric(c(as.character(df$Infection_intensity.1),
+    as.character(df$Sampling_rank)), levels = c(&quot;1&quot;, &quot;2&quot;), labels = c(&quot;First sampling&quot;,
+    &quot;Second sampling&quot;)), Infection_intensity = as.numeric(c(as.character(df$Infection_intensity.1),
     as.character(df$Infection_intensity.2))), Treatment = factor(c(as.character(rep(df$Treatment,
     2))), levels = c(&quot;Control&quot;, &quot;Malarone&quot;)))
 
 ## Figure 2b
 ## -----------------------------------------------------------------------------
 treatment_meaninf_changes = ggplot(mean_infint) + aes(Sampling_rank, Infection_intensity,
-    group = Treatment) + geom_vline(xintercept = &quot;Pre-treatment&quot;, linetype = &quot;dashed&quot;,
-    color = &quot;darkgrey&quot;) + geom_vline(xintercept = &quot;Post-treatment&quot;, linetype = &quot;dashed&quot;,
+    group = Treatment) + geom_vline(xintercept = &quot;First sampling&quot;, linetype = &quot;dashed&quot;,
+    color = &quot;darkgrey&quot;) + geom_vline(xintercept = &quot;Second sampling&quot;, linetype = &quot;dashed&quot;,
     color = &quot;darkgrey&quot;) + labs(y = &quot;Mean infection intensity&quot;) + geom_point(aes(colour = Treatment),
     position = position_jitterdodge(jitter.height = 0.1)) + stat_summary(fun = mean,
-    mapping = aes(group = Treatment), geom = &quot;line&quot;, size = 2, color = c(&quot;lightgrey&quot;,
-        &quot;black&quot;, &quot;black&quot;, &quot;lightgrey&quot;)) + stat_summary(fun = mean, geom = &quot;point&quot;,
-    size = 5) + stat_summary(fun.data = mean_se, geom = &quot;errorbar&quot;, width = 0.04,
-    size = 2) + scale_color_manual(values = c(&quot;lightgrey&quot;, &quot;black&quot;)) + theme_classic() +
-    theme(axis.title.x = element_blank(), legend.text = element_text(size = 16),
-        legend.title = element_text(size = 16), axis.title.y = element_text(size = 18,
-            margin = unit(c(0, 3, 0, 0), &quot;mm&quot;)), axis.text = element_text(size = 16),
-        plot.margin = unit(c(0, 0, 0, 30), &quot;pt&quot;))
+    geom = &quot;line&quot;, size = 2, color = c(&quot;lightgrey&quot;, &quot;black&quot;, &quot;black&quot;, &quot;lightgrey&quot;)) +
+    stat_summary(fun = mean, geom = &quot;point&quot;, size = 5) + stat_summary(fun.data = mean_se,
+    geom = &quot;errorbar&quot;, width = 0.04, size = 2) + scale_color_manual(values = c(&quot;lightgrey&quot;,
+    &quot;black&quot;)) + theme_classic() + theme(axis.title.x = element_blank(), legend.text = element_text(size = 16),
+    legend.title = element_text(size = 16), axis.title.y = element_text(size = 18,
+        margin = unit(c(0, 3, 0, 0), &quot;mm&quot;)), axis.text = element_text(size = 16),
+    plot.margin = unit(c(0, 0, 0, 30), &quot;pt&quot;))
 
 ## Panel wrapping Fig2 a &amp; b:
 ## -----------------------------------------------------------------------------
@@ -574,64 +500,20 @@ Fig2 &lt;- treatment_prevalence_changes + treatment_meaninf_changes + plot_annot
 ggsave(Fig2, filename = &quot;./Figs/Fig2_efficiency_malarone.png&quot;, units = &quot;px&quot;, width = 6000,
     height = 3000)
 
-## Testing for difference in mean infection intensity between Pre and Post
-## treatment
-## -----------------------------------------------------------------------------
-mean_before_after &lt;- data.frame(Ring_no = c(df$Ring_no[df$Sampling_rank %in% 2],
-    df$Ring_no[df$Sampling_rank %in% 2]), Infection_intensity = c(as.character(df$Infection_intensity.1),
-    as.character(df$Infection_intensity.2)), Treatment = c(as.character(df$Treatment[df$Sampling_rank %in%
-    2]), as.character(df$Treatment[df$Sampling_rank %in% 2])), Timepoint = c(rep(&quot;Pre-treatment&quot;,
-    times = length(df$Treatment)), rep(&quot;Post-treatment&quot;, times = length(df$Infection_intensity.2)))) %&gt;%
-    mutate(Treatment = as.factor(Treatment)) %&gt;%
-    mutate(Timepoint = as.factor(Timepoint))
 
-mal = mean_before_after[mean_before_after$Treatment %in% &quot;Malarone&quot;, ]
-ctrl = mean_before_after[mean_before_after$Treatment %in% &quot;Control&quot;, ]
-first = mean_before_after[mean_before_after$Timepoint %in% &quot;Pre-treatment&quot;, ]
+## Testing for difference in parasitic load between Treatment groups at first
+## sampling
+## -----------------------------------------------------------------------------
 
-## Pre-treatment difference in parasitic load between Treatments
+perm.t.test(as.numeric(as.character(df$Infection_intensity.1)) ~ df$Treatment)
+
+## Testing for Treatment effect on parasitemia change between first and second
+## sampling
 ## -----------------------------------------------------------------------------
-perm.t.test(as.numeric(as.character(first$Infection_intensity)) ~ first$Treatment,
-    progress = F)
-## 
-##  Permutation Two Sample t-test
-## 
-## data:  as.numeric(as.character(first$Infection_intensity)) by first$Treatment
-## 999 permutations
-## t = -3.9763, p-value = 0.002
-## alternative hypothesis: true difference in means is not equal to 0
-## sample estimates:
-##  mean in group Control mean in group Malarone 
-##              0.8594595              1.5824176
-sd(first$Infection_intensity[first$Treatment %in% &quot;Control&quot;])
-## [1] 1.33991
-## In malarone treated nestlings
-## -----------------------------------------------------------------------------
-perm.t.test(as.numeric(as.character(mal$Infection_intensity)) ~ mal$Timepoint, progress = F)
-## 
-##  Permutation Two Sample t-test
-## 
-## data:  as.numeric(as.character(mal$Infection_intensity)) by mal$Timepoint
-## 999 permutations
-## t = -3.4672, p-value = 0.002
-## alternative hypothesis: true difference in means is not equal to 0
-## sample estimates:
-## mean in group Post-treatment  mean in group Pre-treatment 
-##                    0.9010989                    1.5824176
-# In control nestlings
-# -----------------------------------------------------------------------------
-perm.t.test(as.numeric(as.character(ctrl$Infection_intensity)) ~ ctrl$Timepoint,
-    progress = F)
-## 
-##  Permutation Two Sample t-test
-## 
-## data:  as.numeric(as.character(ctrl$Infection_intensity)) by ctrl$Timepoint
-## 999 permutations
-## t = 4.327, p-value = 0.002
-## alternative hypothesis: true difference in means is not equal to 0
-## sample estimates:
-## mean in group Post-treatment  mean in group Pre-treatment 
-##                    1.4810811                    0.8594595</code></pre>
+
+lmerTest::lmer(intensity_change ~ Treatment + Year + days_resample + (1 | Nest),
+    data = df[!df$intensity_change %in% -100, ]) %&gt;%
+    summary()</code></pre>
 </div>
 <div id="effects-on-physiology" class="section level2">
 <h2>Effects on physiology</h2>
@@ -3355,6 +3237,7 @@ tol_resdata$Diff_Inf_Class = factor(tol_resdata$Diff_Inf_Class, levels = c(&quot
 
 ## Modeling host health to Infection intensity
 ## -----------------------------------------------------------------------------
+
 tolres_mod = lm(delta_body_condition ~ Infection_intensity.2, data = tol_resdata)
 
 summary(tolres_mod)
@@ -3680,7 +3563,7 @@ rpt(Temperature ~ (1 | ID), grname = &quot;ID&quot;, data = rTemp, npermut = 100
 ## Repeatability for ID
 ## R  = 0.906
 ## SE = 0.036
-## CI = [0.814, 0.953]
+## CI = [0.812, 0.954]
 ## P  = 5.47e-14 [LRT]
 ##      0.001 [Permutation]
 ## Estimating the variance of error

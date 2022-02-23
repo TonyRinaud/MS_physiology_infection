@@ -47,6 +47,7 @@ library(sjmisc)
 library(tidybayes)
 library(tidyverse)
 library(wesanderson)
+library(car)
 theme_set(theme_tidybayes() + panel_border())
 ```
 
@@ -78,6 +79,7 @@ df <-
   mutate(Growth_rate = as.numeric(Growth_rate)) %>% 
   mutate(days_resample = scale(days_resample)) %>% 
   mutate(Age_in_days = scale(as.numeric(Age_in_days))) %>% 
+  mutate(intensity_change = as.numeric(intensity_change)) %>% 
   mutate(Diff_Inf_Class = factor(Diff_Inf_Class, levels = c("Uninfected","Increase","Peak","Decrease")))
  
 ## Arrange data frame
@@ -90,7 +92,8 @@ df <- arrange(df, df$Diff_Inf_Class)
 
 Investigating treatment effects on the prevalence of *Leucocytozoon* parasites:
 
-```{r}
+```{r, results='hide', message=F, warning=F,prompt=F}
+
 ## Build contingency table: Infection prevalence and treatment: First sampling
 ## -----------------------------------------------------------------------------
 pre_treatment <- with(df, table(Prevalence1, Treatment))
@@ -126,10 +129,10 @@ pairwise.prop.test(uninfected_treatment)
 ## -----------------------------------------------------------------------------
 tab_cont = data.frame(
   Count = c(infected_treatment[1,], uninfected_treatment[1,], infected_treatment[2,], uninfected_treatment[2,]),
-  Timepoint = rep(c("Pre-treatment","Post-treatment"), 4),
+  Timepoint = rep(c("First sampling","Second sampling"), 4),
   Treatment = rep(c("Control", "Treatment"), each = 4),
   Prevalence = rep(rep(c("Infected", "Uninfected"), each = 2),2)) %>% 
-  mutate(Timepoint = factor(Timepoint, levels = c("Pre-treatment","Post-treatment"))) %>% 
+  mutate(Timepoint = factor(Timepoint, levels = c("First sampling","Second sampling"))) %>% 
   mutate(Prevalence = factor(Prevalence, levels = c("Uninfected","Infected")))
     
 ##  Create Figure 2a
@@ -152,7 +155,7 @@ treatment_prevalence_changes  <- ggplot(tab_cont) +
 ## -----------------------------------------------------------------------------
 mean_infint = data.frame(
   Sampling_rank = factor(c(rep("1",length(df$Sampling_rank)),as.character(df$Sampling_rank)),levels = c("1","2"),
-                         labels  =  c("Pre-treatment","Post-treatment")),
+                         labels  =  c("First sampling","Second sampling")),
   Infection_intensity = as.numeric(c(as.character(df$Infection_intensity.1),as.character(df$Infection_intensity.2))),
   Treatment = factor(c(as.character(rep(df$Treatment,2))),levels  =  c("Control","Malarone")))
 
@@ -160,11 +163,11 @@ mean_infint = data.frame(
 ## -----------------------------------------------------------------------------
 treatment_meaninf_changes = ggplot(mean_infint) +
   aes(Sampling_rank, Infection_intensity, group = Treatment) +
-  geom_vline(xintercept  =  "Pre-treatment", linetype = "dashed", color = 'darkgrey') +
-  geom_vline(xintercept = "Post-treatment", linetype = "dashed", color = 'darkgrey') +
+  geom_vline(xintercept  =  "First sampling", linetype = "dashed", color = 'darkgrey') +
+  geom_vline(xintercept = "Second sampling", linetype = "dashed", color = 'darkgrey') +
   labs(y = "Mean infection intensity") +
   geom_point(aes(colour = Treatment),position = position_jitterdodge(jitter.height  =  0.1))+
-  stat_summary(fun = mean, mapping = aes(group=Treatment), geom = "line",size = 2,color = c("lightgrey","black","black","lightgrey"))+ 
+  stat_summary(fun = mean, geom = "line",size = 2,color = c("lightgrey","black","black","lightgrey"))+ 
   stat_summary(fun = mean, geom = "point",size = 5) +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.04, size = 2) + 
   scale_color_manual(values = c("lightgrey","black")) + 
@@ -184,35 +187,17 @@ Fig2 <- treatment_prevalence_changes +
   theme(plot.tag = element_text(size = 16, face = "bold"))
 ggsave(Fig2,filename = "./Figs/Fig2_efficiency_malarone.png",units = "px", width = 6000, height = 3000)
 
-## Testing for difference in mean infection intensity between Pre and Post treatment
-## -----------------------------------------------------------------------------
-mean_before_after <- data.frame(
-  Ring_no = 
-    c(df$Ring_no[df$Sampling_rank %in% 2], df$Ring_no[df$Sampling_rank %in% 2]),
-  Infection_intensity = c(as.character(df$Infection_intensity.1), as.character(df$Infection_intensity.2)),
-  Treatment = 
-    c(as.character(df$Treatment[df$Sampling_rank %in% 2]), as.character(df$Treatment[df$Sampling_rank %in% 2])),
-  Timepoint = 
-    c(rep("Pre-treatment", times = length(df$Treatment)), rep("Post-treatment", times = length(df$Infection_intensity.2)))) %>% 
-  mutate(Treatment = as.factor(Treatment)) %>% 
-  mutate(Timepoint = as.factor(Timepoint))
 
-mal = mean_before_after[mean_before_after$Treatment %in% "Malarone",]
-ctrl = mean_before_after[mean_before_after$Treatment %in% "Control",]
-first = mean_before_after[mean_before_after$Timepoint %in% "Pre-treatment",]
-
-## Pre-treatment difference in parasitic load between Treatments
+## Testing for difference in parasitic load between Treatment groups at first sampling
 ## -----------------------------------------------------------------------------
-perm.t.test(as.numeric(as.character(first$Infection_intensity)) ~ first$Treatment, progress = F)
-sd(first$Infection_intensity[first$Treatment %in% "Control"])
 
-## In malarone treated nestlings
-## -----------------------------------------------------------------------------
-perm.t.test(as.numeric(as.character(mal$Infection_intensity)) ~ mal$Timepoint, progress = F)
+perm.t.test(as.numeric(as.character(df$Infection_intensity.1))~df$Treatment)
 
-# In control nestlings
+## Testing for Treatment effect on parasitemia change between first and second sampling
 ## -----------------------------------------------------------------------------
-perm.t.test(as.numeric(as.character(ctrl$Infection_intensity))~ctrl$Timepoint, progress = F)
+
+lmerTest::lmer(intensity_change~Treatment+Year+days_resample+(1|Nest), data=df[!df$intensity_change %in% -100,]) %>%
+  summary()
 ```
 
 ## Effects on physiology
@@ -709,6 +694,7 @@ tol_resdata$Diff_Inf_Class = factor(tol_resdata$Diff_Inf_Class, levels = c("Incr
 
 ## Modeling host health to Infection intensity
 ## -----------------------------------------------------------------------------
+
 tolres_mod=lm(delta_body_condition~Infection_intensity.2, data=tol_resdata)
 
 summary(tolres_mod)
