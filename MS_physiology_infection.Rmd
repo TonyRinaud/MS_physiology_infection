@@ -148,7 +148,6 @@ Fig_2A  <- ggplot(tab_cont) +
         legend.title = element_text(size = 16),
         axis.title.y = element_text(size = 18, margin =  unit(c(0, 3, 0, 0), "mm")),
         axis.text = element_text(size = 16))
-Fig_2A
 
 ## Plotting mean infection intensity values of nestlings across treatments
 ## -----------------------------------------------------------------------------
@@ -193,7 +192,7 @@ ggsave(Fig2,filename = "./Figs/Fig2_efficiency_malarone.png",units = "px", width
 ## Testing for difference in parasitic load between Treatment groups at first sampling
 ## -----------------------------------------------------------------------------
 
-perm.t.test(as.numeric(as.character(df$Infection_intensity.1))~df$Treatment)
+perm.t.test(as.numeric(as.character(df$Infection_intensity.1))~df$Treatment, progress = F)
 
 ## Testing for Treatment effect on parasitemia change between first and second sampling
 ## Note: 
@@ -212,7 +211,7 @@ Exploring effects on physiology of nestlings due to the treatment:
 
 ### Breathing rate
 
-No treatment effect on breathing rate!
+No treatment effect on breathing rate
 
 ```{r}
 ## Table S1
@@ -537,7 +536,7 @@ Fig_5A = ggplot(mod_br_para) +
   geom_segment(size = .8, aes(x = 1, y = max(mod_br_para$higher_CI, na.rm = T) + 1.2,
                               xend = 5, yend = max(mod_br_para$higher_CI, na.rm = T) + 1.2)) + 
     geom_text(aes(x = 3, y = max(mod_br_para$higher_CI, na.rm = T) + 2),
-              label = "n.s.", size = 5)
+              label = "n.s.", size = 6)
 ```
 
 ### Body temperature
@@ -592,13 +591,13 @@ Fig_5B = ggplot(mod_bt_para) +
         plot.title = element_text(hjust = 0.5, face = "bold")) + 
   geom_segment(size = .8, aes(x = 1, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.2,
                               xend = 5, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.2)) + 
-  geom_text(aes(x = 3, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.25),
-            label = "0.006", size = 5) + 
+  geom_text(aes(x = 3, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.3),
+            label = "P = 0.006", size = 5) + 
   geom_segment(size = .8,
                aes(x = 1, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.2,
-                   xend = 1, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.05)) + 
+                   xend = 1, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.1)) + 
   geom_segment(size = .8,
-               aes(x = 5, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.05,
+               aes(x = 5, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.1,
                    xend = 5, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.2))
 ```
 
@@ -656,13 +655,13 @@ Fig_5C = ggplot(mod_bc_para) +
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold")) + 
   geom_segment(size = .8,
-                 aes(x = 1, y = -105, xend = 5, yend = -105)) + 
-    geom_text(aes(x = 3, y = -110),
-              label = "p=0.08", size = 5) + 
+                 aes(x = 1, y = 60, xend = 5, yend = 60)) + 
+    geom_text(aes(x = 3, y = 67),
+              label = "P = 0.080", size = 5) + 
   geom_segment(size = .8,
-                 aes(x = 1, y = -105, xend = 1, yend = -105 + 5)) + 
+                 aes(x = 1, y = 60, xend = 1, yend = 53)) + 
   geom_segment(size = .8,
-                 aes(x = 5, y = -105, xend = 5, yend = -105 + 5))
+                 aes(x = 5, y = 60, xend = 5, yend = 53))
 ```
 
 ### Growth rate
@@ -720,13 +719,13 @@ Fig_5D = ggplot(mod_gr_para) +
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold")) + 
   geom_segment(size = .8,
-               aes(x = 1, y = 4, xend = 5, yend = 4)) + 
-  geom_text(aes(x = 3, y = 5 - 0.63),
-            label = "p = 0.094", size = 5) + 
+               aes(x = 1, y = 30, xend = 5, yend = 30)) + 
+  geom_text(aes(x = 3, y = 31),
+            label = "P = 0.094", size = 5) + 
   geom_segment(size = .8,
-               aes(x = 1, y = 4, xend = 1, yend = 4 + 0.5)) + 
+               aes(x = 1, y = 29, xend = 1, yend = 30)) + 
   geom_segment(size = .8,
-               aes(x = 5, y = 4, xend = 5, yend = 4 + 0.5))
+               aes(x = 5, y = 29, xend = 5, yend = 30))
 ```
 
 ### Summary four models
@@ -768,8 +767,8 @@ tol_resdata <- df %>%
 
 ## Modeling host health to Infection intensity
 ## -----------------------------------------------------------------------------
-tolres_mod = lm(delta_body_condition~Infection_intensity.2, data = tol_resdata)
-summary(tolres_mod)
+lm(delta_body_condition~Infection_intensity.2, data = tol_resdata) %>%
+summary()
 
 ## Modeling host health to Infection intensity : Infection stages
 ## -----------------------------------------------------------------------------
@@ -790,7 +789,7 @@ contrast(lms_delta,"pairwise")
 
 ## Comparison of slopes to zero
 ## -----------------------------------------------------------------------------
-tolre_deltasum = summary(lms_delta)
+
 summary(lms_delta, infer = T)
 
 ## Plotting body condition change with the interaction second infection intensity - infection stage
@@ -820,7 +819,7 @@ tolres <-
 ## -----------------------------------------------------------------------------
 g <- ggplot_gtable(ggplot_build(tolres))
 stripr <- which(grepl('strip-t', g$layout$name))
-fills <- c("#3B9AB2", "#E1AF00", "#F21A00")
+fills <- c("#4CC6E5", "#F7C600", "#FF5643")
 k <- 1
 for (i in stripr) {
  j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
