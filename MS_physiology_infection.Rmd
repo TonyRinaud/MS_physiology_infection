@@ -677,7 +677,7 @@ fig4
 
 ggsave(fig4,filename = "./Figs/Fig4_predicted_physio_param_infection_intensities.png",units = "px", width = 3700, height = 3700)
 
-## Table 4 
+## Table 2 
 ## ----------------------------------------------------------------------------- 
 sjPlot::tab_model(
   lmer_br_para,
@@ -690,7 +690,7 @@ sjPlot::tab_model(
   p.val = "kr",
   show.df = T,
   dv.labels = c("Breathing rate","Body temperature","\U0394 Body condition","Growth rate"),
-  file = "./Tables/Table4_results_parasitemia_lmer_physiological_parameters_p.val_kr.html")
+  file = "./Tables/Table2_results_parasitemia_lmer_physiological_parameters_p.val_kr.html")
 ```
 
 ## Host health to parasitemia 
