@@ -19,4 +19,4 @@
 
 <img src="Figs/Fig1_dynamic_parasitemia.png" style="display: block; margin: auto;" />
 
-<img src="Figs/Fig4_ predicted_physio_param_infection_intensities.png" style="display: block; margin: auto;" />
+<img src="Figs/Fig4_predicted_physio_param_infection_intensities.png" style="display: block; margin: auto;" />
