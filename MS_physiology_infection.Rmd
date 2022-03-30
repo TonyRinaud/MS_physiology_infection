@@ -140,14 +140,17 @@ Fig_2A  <- ggplot(tab_cont) +
   facet_wrap(facets = "Treatment") +  
   geom_bar(stat = 'identity',  width = 0.3) +  
   labs(y = "Count of nestlings") +  
-  geom_text(aes(label = Count),position  = position_stack(0.5)) +  
-  scale_fill_manual(values = c("#D0D0D0","#A8A8A8")) +  
+  geom_text(aes(label = Count),position  = position_stack(0.5),size=5) +  
+  scale_fill_manual(values = c("#D0D0D0","#A8A8A8")) + 
+  scale_x_discrete(labels = c("First\nsampling","Second\nsampling","First\nsampling","Second\nsampling"))+  
   theme(axis.title.x  =  element_blank(), 
-        strip.text = element_text(size = 16, face = "bold"),
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 16),
-        axis.title.y = element_text(size = 18, margin =  unit(c(0, 3, 0, 0), "mm")),
-        axis.text = element_text(size = 16))
+        strip.text = element_text(size = 22, face = "bold"),
+        legend.text = element_text(size = 20),
+        legend.title = element_blank(),
+        legend.position = c(0.85, 0.90),
+        axis.title.y = element_text(size = 28, margin =  unit(c(0, 3, 0, 0), "mm")),
+        axis.text.x = element_text(size = 22, margin =  unit(c(3, 0, 0, 0), "mm")),
+        axis.text.y = element_text(size = 22, margin =  unit(c(0, 1, 0, 0), "mm")))
 
 ## Plotting mean infection intensity values of nestlings across treatments
 ## -----------------------------------------------------------------------------
@@ -159,29 +162,30 @@ mean_infint = data.frame(
 
 ## Figure 2b
 ## -----------------------------------------------------------------------------
-Fig_2B = ggplot(mean_infint) +
+Fig_2B <- ggplot(mean_infint) +
   aes(Sampling_rank, Infection_intensity, group = Treatment) +
   geom_vline(xintercept  =  "First sampling", linetype = "dashed", color = 'darkgrey') +
   geom_vline(xintercept = "Second sampling", linetype = "dashed", color = 'darkgrey') +
   labs(y = "Mean infection intensity") +
   geom_point(aes(colour = Treatment),position = position_jitterdodge(jitter.height  =  0.1)) +
   stat_summary(fun = mean, geom = "line",size = 2,color = c("lightgrey","black","black","lightgrey")) + 
+  scale_x_discrete(labels = c("First\nsampling","Second\nsampling"))+
   stat_summary(fun = mean, geom = "point",size = 5) +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.04, size = 2) + 
   scale_color_manual(values = c("lightgrey","black")) + 
-  theme_classic() + 
   theme(axis.title.x = element_blank(),
-        legend.text = element_text(size = 16),
-        legend.title = element_text(size = 16),
-        axis.title.y = element_text(size = 18, margin =  unit(c(0, 3, 0, 0), "mm")),
-        axis.text = element_text(size = 16),
+        legend.text = element_text(size = 20),
+        legend.title = element_text(size = 22),
+        axis.title.y = element_text(size = 28, margin =  unit(c(0, 5, 0, 0), "mm")),
+        axis.text.x = element_text(size = 22, margin =  unit(c(3, 0, 0, 0), "mm")),
+        axis.text.y = element_text(size = 22, margin =  unit(c(0, 1, 0, 3), "mm")),
         plot.margin = unit(c(0,0,0,30), "pt"))
 
 ## Panel wrapping Fig2 a & b:
 ## ----------------------------------------------------------------------------- 
-Fig2 <- Fig_2A + Fig_2B +
-  plot_annotation(tag_levels = 'A') + 
-  theme(plot.tag = element_text(size = 16, face = "bold"))
+Fig2 <-  Fig_2A +Fig_2B+
+  plot_annotation(tag_levels = 'a') + 
+  theme(plot.tag = element_text(size = 22, face = "bold"))
 
 Fig_2A
 Fig_2B
@@ -203,68 +207,6 @@ lmerTest::lmer(intensity_change ~ Treatment + Year + days_resample + (1|Nest),
                data = df[!df$intensity_change %in% -100,]) %>%
   summary()
 ```
-
-## Effects on physiology
-
-Exploring effects on physiology of nestlings due to the treatment:
-
-
-### Breathing rate
-
-No treatment effect on breathing rate
-
-```{r}
-## Table S1
-## -----------------------------------------------------------------------------
-lm_d1 = lm(Breathing_rate ~ Treatment, data = df)
-summary(lm_d1)
-```
-
-### Body temperature
-
-No treatment effect on body temperature
-
-```{r}
-## Table S1
-## -----------------------------------------------------------------------------
-lm_d2 <- lm(body_temperature ~ Treatment, data = df)
-summary(lm_d2)
-```
-
-### Body condition change
-
-No treatment effect on body condition change
-
-```{r}
-## Table S1
-## -----------------------------------------------------------------------------
-lm_d3 <- lm(delta_body_condition~Treatment, data = df)
-summary(lm_d3)
-```
-
-### Growth rate
-
-No treatment effect on growth rates
-
-```{r}
-## Table S1
-## -----------------------------------------------------------------------------
-lm_d4 <- lm(Growth_rate~Treatment, data = df)
-summary(lm_d4)
-
-## Create Table S1
-## -----------------------------------------------------------------------------
-tab_model(
-  lm_d1,lm_d2,lm_d3,lm_d4,
-  show.reflvl = T,
-  show.ci50 = T ,
-  show.stat = T,
-  string.stat = "t",
-  pred.labels = c("Intercept","Treatment [Malarone]"),
-  dv.labels = c("Breathing rate","Body temperature", "\U0394 Body condition","Growth rate"),
-  file = "./Tables/TableS1_Physiological_parameters_in_decreasing_control_treated.html")
-```
-
 
 ## Infection stages as explanatory variable 
 
@@ -298,7 +240,7 @@ mod_br <- mod_br %>%
 
 ## Plotting predicted values across infection stages
 ## -----------------------------------------------------------------------------
-Fig_4A <- ggplot(mod_br) + 
+Fig_S1A <- ggplot(mod_br) + 
   aes(x,predicted) + 
   geom_hline(yintercept = mean(mod_br$predicted, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Breathing rate") + 
@@ -309,8 +251,8 @@ Fig_4A <- ggplot(mod_br) +
   geom_point(color = "black", outlier.shape = NA, size = 2, width = .3) + 
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(), 
         axis.ticks.x = element_blank(), 
         plot.margin = margin(0, 0, 0, 0, "cm"), 
@@ -344,7 +286,7 @@ mod_bt <- mod_bt %>%
   mutate(x = factor(c(paste0(x,"\nn= ",n2)), levels = c(paste0(x,"\nn= ",n2))))
 
 # Plotting predicted values across infection stages
-Fig_4B <- ggplot(mod_bt) + 
+Fig_S1B <- ggplot(mod_bt) + 
   aes(x,predicted) + 
   geom_hline(yintercept = mean(mod_bt$predicted, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Body temperature") + 
@@ -354,8 +296,8 @@ Fig_4B <- ggplot(mod_bt) +
   geom_point(color = "black", outlier.shape = NA, size = 2, width = .3) + 
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title.y = element_text(size = 14, margin = unit(c(0,3,0,0),"mm")), 
-        axis.text = element_text(size = 12),
+        axis.title.y = element_text(size = 18, margin = unit(c(0,3,0,0),"mm")), 
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold")) + 
@@ -388,7 +330,7 @@ mod_bc <- mod_bc %>%
 
 # Plotting predicted values across infection stages
 
-Fig_4C = ggplot(mod_bc) + 
+Fig_S1C = ggplot(mod_bc) + 
   aes(x,predicted) + 
   geom_hline(yintercept = mean(mod_bc$predicted, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Δ Body condition") + 
@@ -398,8 +340,8 @@ Fig_4C = ggplot(mod_bc) +
   geom_point(color = "black", outlier.shape = NA, size = 2, width = .3) + 
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(),
         plot.margin = margin(0, 0, 0, 0, "cm"),
@@ -428,7 +370,7 @@ mod_gr <- mod_gr %>%
 
 # Plotting predicted values across infection stages
 
-Fig_4D = ggplot(mod_gr) + 
+Fig_S1D = ggplot(mod_gr) + 
   aes(x,predicted) + 
   geom_hline(yintercept = mean(mod_gr$predicted, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Growth rate") + 
@@ -438,8 +380,8 @@ Fig_4D = ggplot(mod_gr) +
   geom_point(color = "black", outlier.shape = NA, size = 2, width = .3) + 
   theme_classic() + 
   theme(legend.position = "none", 
-        axis.title.y = element_text(size = 14, margin = unit(c(0, 3, 0, 0), "mm")),
-        axis.text = element_text(size = 12),
+        axis.title.y = element_text(size = 18, margin = unit(c(0, 3, 0, 0), "mm")),
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(),
         plot.margin = margin(0, 0, 0, 30, "pt"),
@@ -449,20 +391,13 @@ Fig_4D = ggplot(mod_gr) +
               label = "n.s.", size = 5)
 ```
 
-## Summarise models
+## Summary four models
 
 The code below is used to summarise the model output and creates Figure 4 and Table 3 as shown in the manuscript.
 
 ```{r}
-## Figure 4 
-## -----------------------------------------------------------------------------
-fig4 <- Fig_4A + Fig_4B + Fig_4C + Fig_4D + plot_annotation(tag_levels = 'A') & 
-  theme(plot.tag = element_text(size = 16, face = "bold"))
-fig4
 
-ggsave(fig4,filename = "./Figs/Fig4_predicted_physio_param_infection_stages.png",units = "px", width = 3700, height = 3700)
-
-# Table 3
+# Table 1 and Table S3 
 ## -----------------------------------------------------------------------------
 sjPlot::tab_model(
   lmer_br,lmer_bt,lmer_bc,lmer_gr,
@@ -470,8 +405,9 @@ sjPlot::tab_model(
   show.stat = T,
   string.stat = "t",
   df.method = "kr",
+  show.df=T,
   dv.labels = c("Breathing rate","Body temperature","\U0394 Body condition","Growth rate"),
-  file = "./Tables/Table3_results_lmer_physiological_parameters_p.val_kr.html")
+  file = "./Tables/Table1_results_lmer_physiological_parameters_p.val_kr.html")
 ```
 
 ## Parasitemia as explanatory variable
@@ -516,7 +452,7 @@ mod_br_para <- mod_br_para %>%
 
 # Plotting predicted values across infection intensities
 ## -----------------------------------------------------------------------------
-Fig_5A = ggplot(mod_br_para) + 
+Fig_4A = ggplot(mod_br_para) + 
   aes(as.factor(mod_br_para$x),mod_br_para$predicted) + 
   geom_hline(yintercept = mean(mod_br_para$predicted, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Breathing rate") + 
@@ -528,8 +464,8 @@ Fig_5A = ggplot(mod_br_para) +
   geom_point(color = "black", size = 4) + 
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold")) + 
@@ -571,10 +507,12 @@ mod_bt_para <-
 ## Obtain sample sizes for labels 
 ## ----------------------------------------------------------------------------- 
 m2 = table(df$Infection_intensity.2[!is.na(df$body_temperature)])
+mod_bt_para <- mod_bt_para %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",m2)), levels = c(paste0(x,"\nn= ",m2))))
 
 ## Plotting predicted values across infection intensities
 ## -----------------------------------------------------------------------------
-Fig_5B = ggplot(mod_bt_para) + 
+Fig_4B = ggplot(mod_bt_para) + 
   aes(as.factor(mod_bt_para$x),mod_bt_para$predicted) + 
   geom_hline(yintercept = mean(mod_bt_para$predicted, na.rm = T), linetype = "dashed") + 
   geom_errorbar(aes(ymin = mod_bt_para$lower_CI,ymax = mod_bt_para$higher_CI),colour = "black",size = 2, width = .1) + 
@@ -584,8 +522,8 @@ Fig_5B = ggplot(mod_bt_para) +
   geom_point(color = "black", size = 4) + 
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(), 
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold")) + 
@@ -637,7 +575,7 @@ mod_bc_para <- mod_bc_para %>%
 
 # Plotting predicted values across infection intensities
 
-Fig_5C = ggplot(mod_bc_para) + 
+Fig_4C = ggplot(mod_bc_para) + 
   aes(as.factor(mod_bc_para$x),mod_bc_para$predicted) + 
   geom_hline(yintercept = mean(mod_bc_para$predicted, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Δ Body condition") + 
@@ -649,8 +587,8 @@ Fig_5C = ggplot(mod_bc_para) +
   geom_point(color = "black", size = 4) + 
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title = element_text(size = 14),  
-        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 20),  
+        axis.text = element_text(size = 16), 
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold")) + 
@@ -701,7 +639,7 @@ mod_gr_para <- mod_gr_para %>%
 
 # Plotting predicted values across infection intensities
 ## -----------------------------------------------------------------------------
-Fig_5D = ggplot(mod_gr_para) + 
+Fig_4D = ggplot(mod_gr_para) + 
   aes(as.factor(mod_gr_para$x),mod_gr_para$predicted) + 
   geom_hline(yintercept = mean(mod_gr_para$predicted, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Growth rate") + 
@@ -713,8 +651,8 @@ Fig_5D = ggplot(mod_gr_para) +
   geom_point(color = "black", outlier.shape = NA, size = 4, width = .3) + 
   theme_classic() + 
   theme(legend.position = "none", 
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold")) + 
@@ -731,13 +669,13 @@ Fig_5D = ggplot(mod_gr_para) +
 ### Summary four models
 
 ```{r summary}
-## Create multipanel Figure 5
+## Create multipanel Figure 4
 ## -----------------------------------------------------------------------------
-fig5 = Fig_5A + Fig_5B + Fig_5C + Fig_5D + plot_annotation(tag_levels = 'A') & 
+fig4 = Fig_4A + Fig_4B + Fig_4C + Fig_4D + plot_annotation(tag_levels = 'a') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
-fig5
+fig4
 
-ggsave(fig5,filename = "./Figs/Fig5_predicted_physio_param_infection_intensities.png",units = "px", width = 3700, height = 3700)
+ggsave(fig4,filename = "./Figs/Fig4_predicted_physio_param_infection_intensities.png",units = "px", width = 3700, height = 3700)
 
 ## Table 4 
 ## ----------------------------------------------------------------------------- 
@@ -750,6 +688,7 @@ sjPlot::tab_model(
   show.stat = T,
   string.stat = "t",
   p.val = "kr",
+  show.df = T,
   dv.labels = c("Breathing rate","Body temperature","\U0394 Body condition","Growth rate"),
   file = "./Tables/Table4_results_parasitemia_lmer_physiological_parameters_p.val_kr.html")
 ```
@@ -809,11 +748,9 @@ tolres <-
   annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = Inf, xend = Inf, size = 0.5) +
   annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = -Inf, xend = -Inf, size = 0.5) +
   theme(legend.position = "none", 
-        legend.text = element_text(size = 19),
-        legend.title = element_text(size = 22), 
-        axis.text = element_text(size = 16), 
-        axis.title = element_text(size = 18),
-        strip.text = element_text(face = "bold", size = 14))
+        axis.text = element_text(size = 18), 
+        axis.title = element_text(size = 20),
+        strip.text = element_text(face = "bold", size = 16))
 
 ## Arrange plot for three infection stages 
 ## -----------------------------------------------------------------------------
@@ -843,9 +780,18 @@ ggsave(g,filename = "./Figs/Fig3_delta_body_condition_to_parasitemia_second.png"
 Creating supplementary figures:
 
 ```{r}
+
+figS1 <- Fig_S1A + Fig_S1B + Fig_S1C + Fig_S1D + plot_annotation(tag_levels = 'a') & 
+  theme(plot.tag = element_text(size = 16, face = "bold"))
+figS1
+
 ## Plotting observed values across infection stages
 ## ----------------------------------------------------------------------------- 
-Fig_S1A = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
+
+ggsave(figS1,filename = "./Figs/FigS1_predicted_physio_param_infection_stages.png",units = "px", width = 3700, height = 3700)
+
+
+Fig_S2A = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
   aes(Diff_Inf_Class,Breathing_rate) + 
   geom_hline(yintercept = mean(df$Breathing_rate, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Breathing rate") + 
@@ -859,14 +805,14 @@ Fig_S1A = ggplot(df[!df$Diff_Inf_Class %in% NA,]) +
   stat_n_text() +  
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16), 
         axis.line.x = element_blank(), 
         axis.ticks.x = element_blank(),
         plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold"))
 
-Fig_S1B = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
+Fig_S2B = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
   aes(Diff_Inf_Class,body_temperature) + 
   geom_hline(yintercept = mean(df$body_temperature, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Body temperature") + 
@@ -880,14 +826,14 @@ Fig_S1B = ggplot(df[!df$Diff_Inf_Class %in% NA,]) +
   stat_n_text() + 
   theme_classic() + 
   theme(legend.position = "none", 
-        axis.title = element_text(size = 14), 
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 20), 
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), 
         plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold"))
 
-Fig_S1C = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
+Fig_S2C = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
   aes(Diff_Inf_Class,delta_body_condition) + 
   geom_hline(yintercept = mean(df$delta_body_condition, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "\U0394 Body condition") + 
@@ -901,14 +847,14 @@ Fig_S1C = ggplot(df[!df$Diff_Inf_Class %in% NA,]) +
   stat_n_text() + 
   theme_classic() + 
   theme(legend.position = "none", 
-        axis.title = element_text(size = 14), 
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 20), 
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(), 
         axis.ticks.x = element_blank(),
         plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold"))
 
-Fig_S1D = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
+Fig_S2D = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
   aes(Diff_Inf_Class,Growth_rate) + 
   geom_hline(yintercept = mean(df$Growth_rate, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Growth rate") + 
@@ -922,24 +868,24 @@ Fig_S1D = ggplot(df[!df$Diff_Inf_Class %in% NA,]) +
   stat_n_text() + 
   theme_classic() + 
   theme(legend.position = "none", 
-        axis.title = element_text(size = 14), 
-        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 20), 
+        axis.text = element_text(size = 16), 
         axis.line.x = element_blank(), 
         axis.ticks.x = element_blank(), 
         plot.margin = margin(0, 0, 0, 0, "cm"), 
         plot.title = element_text(hjust = 0.5, face = "bold"))
 
-## Saving Figure S1
+## Saving Figure S2
 ## ----------------------------------------------------------------------------- 
-figs1 = Fig_S1A + Fig_S1B + Fig_S1C + Fig_S1D + plot_annotation(tag_levels = 'A') & 
+figs2 = Fig_S2A + Fig_S2B + Fig_S2C + Fig_S2D + plot_annotation(tag_levels = 'a') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
-figs1
+figs2
 
-ggsave(figs1,filename = "./Figs/FigS1_observed_physio_param_infection_stages.png",units = "px", width = 3500, height = 3800)
+ggsave(figs2,filename = "./Figs/FigS2_observed_physio_param_infection_stages.png",units = "px", width = 3500, height = 3800)
 
 ## Plotting observed values across infection intensities
 ## ----------------------------------------------------------------------------- 
-Fig_S2A = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
+Fig_S3A = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
   aes(Infection_intensity.2,Breathing_rate) + 
   geom_hline(yintercept = mean(df$Breathing_rate, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Breathing rate") + 
@@ -953,13 +899,13 @@ Fig_S2A = ggplot(df[!df$Infection_intensity.2 %in% NA,]) +
   stat_n_text() + 
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold"))
 
-Fig_S2B <- ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
+Fig_S3B <- ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
   aes(Infection_intensity.2,body_temperature) + 
   geom_hline(yintercept = mean(df$body_temperature, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Body temperature") + 
@@ -973,13 +919,13 @@ Fig_S2B <- ggplot(df[!df$Infection_intensity.2 %in% NA,]) +
   stat_n_text() + 
   theme_classic() + 
   theme(legend.position = "none",
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16), 
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold"))
 
-Fig_S2C = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
+Fig_S3C = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
   aes(Infection_intensity.2,delta_body_condition) + 
   geom_hline(yintercept = mean(df$delta_body_condition, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "\U0394 Body condition") + 
@@ -993,13 +939,13 @@ Fig_S2C = ggplot(df[!df$Infection_intensity.2 %in% NA,]) +
   stat_n_text() + 
   theme_classic() + 
   theme(legend.position = "none", 
-        axis.title = element_text(size = 14),
-        axis.text = element_text(size = 12), 
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16), 
         axis.line.x = element_blank(), 
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold"))
 
-Fig_S2D = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
+Fig_S3D = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
   aes(Infection_intensity.2,Growth_rate) + 
   geom_hline(yintercept = mean(df$Growth_rate, na.rm = T), linetype = "dashed") + 
   labs(x = "", y = "Growth rate") + 
@@ -1013,24 +959,24 @@ Fig_S2D = ggplot(df[!df$Infection_intensity.2 %in% NA,]) +
   stat_n_text() + 
   theme_classic() + 
   theme(legend.position = "none", 
-        axis.title = element_text(size = 14), 
-        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 20), 
+        axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(),
         plot.margin = margin(0, 0, 0, 0, "cm"),
         plot.title = element_text(hjust = 0.5, face = "bold"))
 
-## Saving figure S2
+## Saving figure S3
 ## ----------------------------------------------------------------------------- 
-figs2 = Fig_S2A + Fig_S2B + Fig_S2C + Fig_S2D + plot_annotation(tag_levels = 'A') & 
+figs3 = Fig_S3A + Fig_S3B + Fig_S3C + Fig_S3D + plot_annotation(tag_levels = 'a') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
-figs2
+figs3
 
-ggsave(figs2,filename = "./Figs/FigS2_observed_physio_param_parasitemia.png",units = "px", width = 3500, height = 3800)
+ggsave(figs3,filename = "./Figs/FigS3_observed_physio_param_parasitemia.png",units = "px", width = 3500, height = 3800)
 
 ## Plotting effect sizes of 'infection stages' models
 ## ----------------------------------------------------------------------------- 
-Fig_S3A = plot_model(
+Fig_S4A = plot_model(
   lmer_br,
   sort.est = T,
   se = T,
@@ -1043,7 +989,7 @@ Fig_S3A = plot_model(
           "Peak parasitemia","Weight (g)","Ambient temperature",
           "Year [2019]","Year [2018]","Year [2020]")))
 
-Fig_S3B = plot_model(
+Fig_S4B = plot_model(
   lmer_bt,
   sort.est = T,
   se = T,
@@ -1055,7 +1001,7 @@ Fig_S3B = plot_model(
           "Increasing parasitemia","Uninfected : Treatment [Malarone]",
           "Peak parasitemia","Sampling interval")))
 
-Fig_S3C = plot_model(
+Fig_S4C = plot_model(
   lmer_bc,
   sort.est = T,
   se = T,
@@ -1067,7 +1013,7 @@ Fig_S3C = plot_model(
           "Uninfected : Treatment [Malarone]","Sex [Males]",
           "Increasing parasitemia","Decreasing parasitemia","Peak parasitemia")))
 
-Fig_S3D = plot_model(
+Fig_S4D = plot_model(
   lmer_gr,
   sort.est = T,
   se = T,
@@ -1079,17 +1025,17 @@ Fig_S3D = plot_model(
           "Increasing parasitemia","Decreasing parasitemia","Peak parasitemia",
           "Sex [Males]","Age (days)")))
 
-## Saving Figure S3
+## Saving Figure S4
 ## ----------------------------------------------------------------------------- 
-figs3 = Fig_S3A + Fig_S3B + Fig_S3C + Fig_S3D + plot_annotation(tag_levels = 'A') & 
+figs4 = Fig_S4A + Fig_S4B + Fig_S4C + Fig_S4D + plot_annotation(tag_levels = 'a') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
-figs3
+figs4
 
-ggsave(figs3,filename = "./Figs/FigS3_effect_sizes_param_stages.png",units = "px", width = 3500, height = 3800)
+ggsave(figs4,filename = "./Figs/FigS4_effect_sizes_param_stages.png",units = "px", width = 3500, height = 3800)
 
 ## Plotting effect sizes of 'infection intensities' models
 ## ----------------------------------------------------------------------------- 
-Fig_S4A = plot_model(
+Fig_S5A = plot_model(
   lmer_br_para,
   sort.est = T,
   se = T,
@@ -1104,7 +1050,7 @@ Fig_S4A = plot_model(
           "Infection intensity 2","Weight (g)","Ambient temperature",
           "Year [2019]","Year [2018]","Year [2020]")))
 
-Fig_S4B = plot_model(
+Fig_S5B = plot_model(
   lmer_bt_para,
   sort.est = T,
   se = T,
@@ -1118,7 +1064,7 @@ Fig_S4B = plot_model(
           "Infection intensity [1] : Treatment [Malarone]",
           "Infection intensity 3", "Sampling interval","Infection intensity 4")))
 
-Fig_S4C = plot_model(
+Fig_S5C = plot_model(
   lmer_bc_para,
   sort.est = T,
   se = T,
@@ -1133,7 +1079,7 @@ Fig_S4C = plot_model(
           "Infection intensity 2","Infection intensity [1] : Treatment [Malarone]",
           "Infection intensity 4")))
 
-Fig_S4D = plot_model(
+Fig_S5D = plot_model(
   lmer_gr_para,
   sort.est = T,
   se = T,
@@ -1148,11 +1094,11 @@ Fig_S4D = plot_model(
 
 ## Figure S4
 ## ----------------------------------------------------------------------------- 
-figs4 = Fig_S4A + Fig_S4B + Fig_S4C + Fig_S4D + plot_annotation(tag_levels = 'A') & 
+figs5 = Fig_S5A + Fig_S5B + Fig_S5C + Fig_S5D + plot_annotation(tag_levels = 'a') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
-figs4
+figs5
 
-ggsave(figs4,filename = "./Figs/FigS4_effect_sizes_param_intensities.png",units = "px", width = 3500, height = 3800)
+ggsave(figs5, filename = "./Figs/FigS5_effect_sizes_param_intensities.png",units = "px", width = 3500, height = 3800)
 ```
 
 ## Estimating measurment error of body temperature
