@@ -144,13 +144,13 @@ Fig_2A  <- ggplot(tab_cont) +
   scale_fill_manual(values = c("#D0D0D0","#A8A8A8")) + 
   scale_x_discrete(labels = c("First\nsampling","Second\nsampling","First\nsampling","Second\nsampling"))+  
   theme(axis.title.x  =  element_blank(), 
-        strip.text = element_text(size = 22, face = "bold"),
-        legend.text = element_text(size = 20),
+        strip.text = element_text(size = 26, face = "bold"),
+        legend.text = element_text(size = 24),
         legend.title = element_blank(),
         legend.position = c(0.85, 0.90),
         axis.title.y = element_text(size = 28, margin =  unit(c(0, 3, 0, 0), "mm")),
-        axis.text.x = element_text(size = 22, margin =  unit(c(3, 0, 0, 0), "mm")),
-        axis.text.y = element_text(size = 22, margin =  unit(c(0, 1, 0, 0), "mm")))
+        axis.text.x = element_text(size = 24, margin =  unit(c(3, 0, 0, 0), "mm")),
+        axis.text.y = element_text(size = 24, margin =  unit(c(0, 1, 0, 0), "mm")))
 
 ## Plotting mean infection intensity values of nestlings across treatments
 ## -----------------------------------------------------------------------------
@@ -174,11 +174,11 @@ Fig_2B <- ggplot(mean_infint) +
   stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.04, size = 2) + 
   scale_color_manual(values = c("lightgrey","black")) + 
   theme(axis.title.x = element_blank(),
-        legend.text = element_text(size = 20),
-        legend.title = element_text(size = 22),
+        legend.text = element_text(size = 24),
+        legend.title = element_text(size = 26),
         axis.title.y = element_text(size = 28, margin =  unit(c(0, 5, 0, 0), "mm")),
-        axis.text.x = element_text(size = 22, margin =  unit(c(3, 0, 0, 0), "mm")),
-        axis.text.y = element_text(size = 22, margin =  unit(c(0, 1, 0, 3), "mm")),
+        axis.text.x = element_text(size = 26, margin =  unit(c(3, 0, 0, 0), "mm")),
+        axis.text.y = element_text(size = 26, margin =  unit(c(0, 1, 0, 3), "mm")),
         plot.margin = unit(c(0,0,0,30), "pt"))
 
 ## Panel wrapping Fig2 a & b:
@@ -530,7 +530,7 @@ Fig_4B = ggplot(mod_bt_para) +
   geom_segment(size = .8, aes(x = 1, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.2,
                               xend = 5, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.2)) + 
   geom_text(aes(x = 3, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.3),
-            label = "P = 0.006", size = 5) + 
+            label = "t = -2.80, df = 140, P = 0.006", size = 5) + 
   geom_segment(size = .8,
                aes(x = 1, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.2,
                    xend = 1, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.1)) + 
@@ -595,7 +595,7 @@ Fig_4C = ggplot(mod_bc_para) +
   geom_segment(size = .8,
                  aes(x = 1, y = 60, xend = 5, yend = 60)) + 
     geom_text(aes(x = 3, y = 67),
-              label = "P = 0.080", size = 5) + 
+              label = "t = -1.76, df = 247, P = 0.080", size = 5) + 
   geom_segment(size = .8,
                  aes(x = 1, y = 60, xend = 1, yend = 53)) + 
   geom_segment(size = .8,
@@ -659,7 +659,7 @@ Fig_4D = ggplot(mod_gr_para) +
   geom_segment(size = .8,
                aes(x = 1, y = 30, xend = 5, yend = 30)) + 
   geom_text(aes(x = 3, y = 31),
-            label = "P = 0.094", size = 5) + 
+            label = "t = 2.06, df = 258, P = 0.094", size = 5) + 
   geom_segment(size = .8,
                aes(x = 1, y = 29, xend = 1, yend = 30)) + 
   geom_segment(size = .8,
@@ -744,7 +744,7 @@ tolres <-
   scale_x_continuous(breaks = seq(2,5,1),labels = c("1","2","3","4")) + 
   scale_color_manual(labels = c("Increasing", "Peak", "Decreasing"),
                      values = c("#3B9AB2", "#E1AF00", "#F21A00")) + 
-  theme_pubr() +
+  theme_bw()+
   annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = Inf, xend = Inf, size = 0.5) +
   annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = -Inf, xend = -Inf, size = 0.5) +
   theme(legend.position = "none", 
@@ -772,7 +772,7 @@ fig3 = tolres +
   theme(plot.tag = element_text(size = 16, face = "bold"))
 fig3
 
-ggsave(g,filename = "./Figs/Fig3_delta_body_condition_to_parasitemia_second.png",units = "px", width = 3700, height = 2800)
+ggsave(g,filename = "./Figs/Fig3_delta_body_condition_to_parasitemia_second.png",units = "px", width = 3700, height = 2400)
 ```
 
 ## Supplementary figures
