@@ -578,7 +578,7 @@ mod_bc_para <- mod_bc_para %>%
 Fig_4C = ggplot(mod_bc_para) + 
   aes(as.factor(mod_bc_para$x),mod_bc_para$predicted) + 
   geom_hline(yintercept = mean(mod_bc_para$predicted, na.rm = T), linetype = "dashed") + 
-  labs(x = "", y = "Δ Body condition") + 
+  labs(x = "Parasitemia", y = "Δ Body condition") + 
   geom_errorbar(aes(ymin = mod_bc_para$lower_CI, ymax = mod_bc_para$higher_CI),
                 colour = "black",size = 2, width = .1) + 
   geom_errorbar(aes(ymin = mod_bc_para$predicted - mod_bc_para$se,
@@ -588,6 +588,7 @@ Fig_4C = ggplot(mod_bc_para) +
   theme_classic() + 
   theme(legend.position = "none",
         axis.title = element_text(size = 20),  
+        axis.title.x = element_text(size = 20, vjust=-0.5),
         axis.text = element_text(size = 16), 
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
@@ -642,7 +643,7 @@ mod_gr_para <- mod_gr_para %>%
 Fig_4D = ggplot(mod_gr_para) + 
   aes(as.factor(mod_gr_para$x),mod_gr_para$predicted) + 
   geom_hline(yintercept = mean(mod_gr_para$predicted, na.rm = T), linetype = "dashed") + 
-  labs(x = "", y = "Growth rate") + 
+  labs(x = "Parasitemia", y = "Growth rate") + 
   geom_errorbar(aes(ymin = mod_gr_para$lower_CI,
                     ymax = mod_gr_para$higher_CI), colour = "black",size = 2, width = .1) + 
   geom_errorbar(aes(ymin = mod_gr_para$predicted - mod_gr_para$se,
@@ -652,6 +653,7 @@ Fig_4D = ggplot(mod_gr_para) +
   theme_classic() + 
   theme(legend.position = "none", 
         axis.title = element_text(size = 20),
+        axis.title.x = element_text(size = 20, vjust=-0.5),
         axis.text = element_text(size = 16),
         axis.line.x = element_blank(),
         axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
@@ -928,7 +930,7 @@ Fig_S3B <- ggplot(df[!df$Infection_intensity.2 %in% NA,]) +
 Fig_S3C = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
   aes(Infection_intensity.2,delta_body_condition) + 
   geom_hline(yintercept = mean(df$delta_body_condition, na.rm = T), linetype = "dashed") + 
-  labs(x = "", y = "\U0394 Body condition") + 
+  labs(x = "Parasitemia", y = "\U0394 Body condition") + 
   geom_jitter(color = "lightgrey", size = 2, width = .3) + 
   stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
                size = 2.8 , width = 0.05, show.legend = FALSE, 
@@ -948,7 +950,7 @@ Fig_S3C = ggplot(df[!df$Infection_intensity.2 %in% NA,]) +
 Fig_S3D = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
   aes(Infection_intensity.2,Growth_rate) + 
   geom_hline(yintercept = mean(df$Growth_rate, na.rm = T), linetype = "dashed") + 
-  labs(x = "", y = "Growth rate") + 
+  labs(x = "Parasitemia", y = "Growth rate") + 
   geom_jitter(color = "lightgrey", size = 2, width = .3) + 
   stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
                size = 2.8, width = 0.05, show.legend = FALSE, 
@@ -1041,13 +1043,13 @@ Fig_S5A = plot_model(
   se = T,
   title = "Breathing rate",
   axis.labels = 
-    rev(c("Infection intensity [2] : Treatment [Malarone]","Age (days)",
-          "Infection intensity 1", "Infection intensity 4",
-          "Infection intensity [1] : Treatment [Malarone]",
-          "Infection intensity [3] : Treatment [Malarone]",
-          "Infection intensity [0] : Treatment [Malarone]",
-          "Sex [Males]","Infection intensity 3","Sampling interval",
-          "Infection intensity 2","Weight (g)","Ambient temperature",
+    rev(c("Parasitemia [2] : Treatment [Malarone]","Age (days)",
+          "Parasitemia 1", "Parasitemia 4",
+          "Parasitemia [1] : Treatment [Malarone]",
+          "Parasitemia [3] : Treatment [Malarone]",
+          "Parasitemia [0] : Treatment [Malarone]",
+          "Sex [Males]","Parasitemia 3","Sampling interval",
+          "Parasitemia 2","Weight (g)","Ambient temperature",
           "Year [2019]","Year [2018]","Year [2020]")))
 
 Fig_S5B = plot_model(
@@ -1057,12 +1059,12 @@ Fig_S5B = plot_model(
   title = "Body temperature",
   axis.labels = 
     rev(c("Ambient temperature","Year [2020]","Age (days)",
-          "Infection intensity [3] : Treatment [Malarone]",
-          "Infection intensity 1", "Infection intensity [2] : Treatment [Malarone]",
-          "Weight (g)","Infection intensity 2","Sex [Males]",
-          "Infection intensity [0] : Treatment [Malarone]",
-          "Infection intensity [1] : Treatment [Malarone]",
-          "Infection intensity 3", "Sampling interval","Infection intensity 4")))
+          "Parasitemia [3] : Treatment [Malarone]",
+          "Parasitemia 1", "Parasitemia [2] : Treatment [Malarone]",
+          "Weight (g)","Parasitemia 2","Sex [Males]",
+          "Parasitemia [0] : Treatment [Malarone]",
+          "Parasitemia [1] : Treatment [Malarone]",
+          "Parasitemia 3", "Sampling interval","Parasitemia 4")))
 
 Fig_S5C = plot_model(
   lmer_bc_para,
@@ -1071,13 +1073,13 @@ Fig_S5C = plot_model(
   title = "\U0394 Body condition",
   axis.labels = 
     rev(c("Year [2020]","Year [2018]","Year [2019]",
-          "Infection intensity [2] : Treatment [Malarone]",
-          "Infection intensity 1","Sampling interval",
-          "Infection intensity [3] : Treatment [Malarone]",
-          "Infection intensity [0] : Treatment [Malarone]",
-          "Age (days)","Sex [Males]","Infection intensity 3",
-          "Infection intensity 2","Infection intensity [1] : Treatment [Malarone]",
-          "Infection intensity 4")))
+          "Parasitemia [2] : Treatment [Malarone]",
+          "Parasitemia 1","Sampling interval",
+          "Parasitemia [3] : Treatment [Malarone]",
+          "Parasitemia [0] : Treatment [Malarone]",
+          "Age (days)","Sex [Males]","Parasitemia 3",
+          "Parasitemia 2","Parasitemia [1] : Treatment [Malarone]",
+          "Parasitemia 4")))
 
 Fig_S5D = plot_model(
   lmer_gr_para,
@@ -1085,12 +1087,12 @@ Fig_S5D = plot_model(
   se = T,
   title = "Growth rate", 
   axis.labels = 
-    rev(c("Year [2020]","Infection intensity [2] : Treatment [Malarone]",
-          "Year [2018]","Year [2019]","Sampling interval","Infection intensity 1",
-          "Infection intensity [3] : Treatment [Malarone]",
-          "Infection intensity [0] : Treatment [Malarone]",
-          "Infection intensity 3","Sex [Males]","Infection intensity 2",
-          "Age (days)","Infection intensity 4","Infection intensity [1] : Treatment [Malarone]")))
+    rev(c("Year [2020]","Parasitemia [2] : Treatment [Malarone]",
+          "Year [2018]","Year [2019]","Sampling interval","Parasitemia 1",
+          "Parasitemia [3] : Treatment [Malarone]",
+          "Parasitemia [0] : Treatment [Malarone]",
+          "Parasitemia 3","Sex [Males]","Parasitemia 2",
+          "Age (days)","Parasitemia 4","Parasitemia [1] : Treatment [Malarone]")))
 
 ## Figure S4
 ## ----------------------------------------------------------------------------- 
