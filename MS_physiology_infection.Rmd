@@ -1,0 +1,1431 @@
+---
+title: "R code for 'Blood parasite infection causes marginal temporary costs in juvenile birds of prey'"
+author: "Tony Rinaud, Meinolf Ottensmann, Hugo Pereira, Tim M. Rapp, Kai-Philipp Gladow, Oliver Krüger & Nayden Chakarov"
+output: html_document
+---
+
+This document provides all the `R code` used in our paper. Both the Rmarkdown file and the data can be downloaded from the accompanying GitHub repository on (<https://github.com/TonyRinaud/MS_physiology_infection>) as a zip archive containing all the files. We recommend to download or clone this [GitHub repository](https://github.com/TonyRinaud/MS_physiology_infection) in order to access the documentation together with all the files that are needed to repeat analyses shown in this document. Just click on the link above and then on the green box `Clone or download`. In order to function properly, the same structure of folders must be kept. If you have any questions, don't hesitate to contact [tony.rinaud\@gmail.com](mailto:tony.rinaud@gmail.com){.email}
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  fig.width = 8, fig.height = 8, comment = "#>",
+  echo = TRUE, strip.white = TRUE, collapse = TRUE, fig.align = "center",
+  warning = F, message = F, highlight = TRUE, tidy = TRUE)
+```
+
+## Required packages
+
+A number of packages, all of which are available on CRAN are required to repeat analyses presented in this document. The code chunk below allows to load them for the analyses. Any missing package needs to be installed before, using the 'install.packages())' function:
+
+```{r packages, message=F, warning=F}
+library(chron)
+library(cowplot)
+library(EnvStats)
+library(lme4)
+library(lmerTest)
+library(lsmeans)
+library(ggalt)
+library(ggdist)
+library(ggeffects)
+library(ggplot2)
+library(ggpubr)
+library(ggrepel)
+library(ggridges)
+library(ggsci)
+library(ggsignif)
+library(grid)
+library(gridExtra)
+library(magrittr)
+library(patchwork)
+library(plyr)
+library(rptR)
+library(RVAideMemoire)
+library(sjPlot)
+library(sjlabelled)
+library(sjmisc)
+library(tidybayes)
+library(tidyverse)
+library(wesanderson)
+library(car)
+## set theme for ggplot objects
+theme_set(theme_tidybayes() + panel_border())
+```
+
+## Load raw data
+
+The raw data is comprised of 276 common buzzard (*Buteo buteo*) individuals. Each individual was sampled at least twice over the course of the nestling period during the years 2016 and 2018 - 2020. First, the raw data is loaded from the file `physiology_infection_stage_full_wideformat.csv` and re-formatted (scaling variables, reordering factor levels etc.) before downstream analyses:
+
+```{r data}
+## Load data from csv file and code variable classes
+## -----------------------------------------------------------------------------
+df <- 
+  read.csv('./physiology_infection_stage_full_wideformat.csv', h = T, sep = ';', dec = ".") %>% 
+  mutate(Age_unz = as.numeric(Age_in_days)) %>%
+  mutate(Age_unz.1 = as.numeric(Age_unz - days_resample)) %>% 
+  mutate(days_resample_unz = days_resample) %>%
+  mutate(Age_in_days_unz = as.numeric(Age_in_days)) %>%
+  mutate(Nest = as.factor(Nest)) %>% 
+  mutate(Date = chron(as.character(Date), format = "d/m/y")) %>% 
+  mutate(Infection_intensity.1 = as.factor(Infection_intensity.1)) %>% 
+  mutate(Infection_intensity.2 = as.factor(Infection_intensity.2)) %>%
+  mutate(Prevalence2 = as.factor(ifelse(Infection_intensity.2 == 0, 0, 1))) %>%
+  mutate(Prevalence1 = as.factor(ifelse(Infection_intensity.1 == 0, 0, 1))) %>% 
+  mutate(Breathing_rate = as.numeric(Breathing_rate)) %>% 
+  mutate(Sex = as.factor(Sex)) %>% 
+  mutate(Sampling_rank = as.factor(Sampling_rank)) %>% 
+  mutate(Weight_g = scale(as.numeric(Weight.2))) %>% 
+  mutate(Wing_cm = as.numeric(Wing.2)) %>% 
+  mutate(body_temperature = as.numeric(body_temperature)) %>% 
+  mutate(delta_body_condition = as.numeric(delta_body_condition)) %>% 
+  mutate(Ambient_Temperature_AvgC = scale(as.numeric(TemperatureAvgC))) %>% 
+  mutate(Treatment = as.factor(Treatment)) %>% 
+  mutate(Year = as.factor(Year)) %>% 
+  mutate(Growth_rate = as.numeric(Growth_rate)) %>% 
+  mutate(days_resample = scale(days_resample)) %>% 
+  mutate(Age_in_days = scale(as.numeric(Age_in_days))) %>% 
+  mutate(intensity_change = as.numeric(intensity_change)) %>% 
+  mutate(Diff_Inf_Class = factor(Diff_Inf_Class, levels = c("Uninfected","Increase","Peak","Decrease")))
+ 
+## Arrange data frame
+## ----------------------------------------------------------------------------- 
+df <- arrange(df, df$Diff_Inf_Class)
+```
+
+## Effects on parasites
+
+Investigating treatment (*control* vs *Malarone*) effects on the prevalence of *Leucocytozoon* parasites:
+
+```{r, results='hide', message=F, warning=F,prompt=F}
+
+## Testing for differences in age at first and second sampling
+## -----------------------------------------------------------------------------
+# First
+t.test(df$Age_unz.1[df$Treatment %in% "Malarone"], df$Age_unz.1[df$Treatment %in% 'Control'])
+
+#Second
+
+t.test(df$Age_unz[df$Treatment %in% "Malarone"], df$Age_unz[df$Treatment %in% 'Control'])
+
+## Build contingency table: Infection prevalence and treatment: First sampling
+## -----------------------------------------------------------------------------
+pre_treatment <- with(df, table(Prevalence1, Treatment))
+prop.test(pre_treatment)
+pairwise.prop.test(pre_treatment)
+
+## Build contingency table: Infection prevalence and treatment: Second sampling
+## -----------------------------------------------------------------------------
+post_treatment <- with(df, table(Prevalence2, Treatment))
+prop.test(post_treatment)
+pairwise.prop.test(post_treatment)
+
+## Proportion of infected individuals across time points
+## -----------------------------------------------------------------------------
+infected_treatment <- 
+  matrix(c(pre_treatment[2,], post_treatment[2,]), nrow = 2) %>% 
+  set_colnames(., c("First sampling", "Second sampling")) %>% 
+  set_rownames(., c("Control", "Malarone"))
+prop.test(infected_treatment)
+pairwise.prop.test(infected_treatment)
+
+## Proportion of uninfected individuals across time points
+## -----------------------------------------------------------------------------
+uninfected_treatment <- 
+  matrix(c(pre_treatment[1,], post_treatment[1,]), nrow = 2) %>% 
+  set_colnames(., c("First sampling", "Second sampling")) %>% 
+  set_rownames(., c("Control", "Malarone"))
+prop.test(uninfected_treatment)
+pairwise.prop.test(uninfected_treatment)
+
+
+## Plotting count of infected / uninfected nestlings across treatments
+## -----------------------------------------------------------------------------
+tab_cont = data.frame(
+  Count = c(infected_treatment[1,], uninfected_treatment[1,], infected_treatment[2,], uninfected_treatment[2,]),
+  Timepoint = rep(c("First sampling", "Second sampling"), 4),
+  Treatment = rep(c("Control", "Treatment"), each = 4),
+  Prevalence = rep(rep(c("Infected", "Uninfected"), each = 2),2)) %>% 
+  mutate(Timepoint = factor(Timepoint, levels = c("First sampling", "Second sampling"))) %>% 
+  mutate(Prevalence = factor(Prevalence, levels = c("Uninfected","Infected")))
+    
+##  Create Figure 2a
+## -----------------------------------------------------------------------------
+Fig_2A  <- ggplot(tab_cont) +  
+  aes(Timepoint, Count, fill = Prevalence) +  
+  facet_wrap(facets = "Treatment") +  
+  geom_bar(stat = 'identity',  width = 0.3) +  
+  labs(y = "Count of nestlings") +  
+  geom_text(aes(label = Count),position  = position_stack(0.5),size=5) +  
+  scale_fill_manual(values = c("#D0D0D0","#A8A8A8")) + 
+  scale_x_discrete(labels = c("First\nsampling", "Second\nsampling", 
+                              "First\nsampling", "Second\nsampling"))+  
+  theme(axis.title.x  =  element_blank(), 
+        strip.text = element_text(size = 26, face = "bold"),
+        legend.text = element_text(size = 24),
+        legend.title = element_blank(),
+        legend.position = c(0.85, 0.90),
+        axis.title.y = element_text(size = 28, margin =  unit(c(0, 3, 0, 0), "mm")),
+        axis.text.x = element_text(size = 22, margin =  unit(c(3, 0, 0, 0), "mm")),
+        axis.text.y = element_text(size = 24, margin =  unit(c(0, 1, 0, 0), "mm")))
+
+## Plotting mean infection intensity values of nestlings across treatments
+## -----------------------------------------------------------------------------
+mean_infint = data.frame(
+  Sampling_rank = factor(c(rep("1",length(df$Sampling_rank)),as.character(df$Sampling_rank)),levels = c("1","2"),
+                         labels  =  c(bquote("T"[0]), bquote("T"[1]))),
+  Infection_intensity = as.numeric(c(as.character(df$Infection_intensity.1),as.character(df$Infection_intensity.2))),
+  Treatment = factor(c(as.character(rep(df$Treatment,2))),levels  =  c("Control","Malarone")))
+
+## Figure 2b
+## -----------------------------------------------------------------------------
+Fig_2B <- ggplot(mean_infint) +
+  aes(Sampling_rank, Infection_intensity, group = Treatment) +
+  geom_vline(xintercept  =  "First sampling", linetype = "dashed", color = 'darkgrey') +
+  geom_vline(xintercept = "Second sampling", linetype = "dashed", color = 'darkgrey') +
+  labs(y = "Infection intensity (Mean +/- s.e.)") +
+  geom_point(aes(colour = Treatment),position = position_jitterdodge(jitter.height  =  0.1)) +
+  stat_summary(fun = mean, geom = "line",size = 2,color = c("lightgrey","black","black","lightgrey")) + 
+  scale_x_discrete(labels = c("First sampling","Second sampling"))+
+  stat_summary(fun = mean, geom = "point",size = 5) +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 0.04, size = 2) + 
+  scale_color_manual(values = c("lightgrey","black")) + 
+  theme(axis.title.x = element_blank(),
+        legend.text = element_text(size = 22),
+        legend.title = element_text(size = 26),
+        axis.title.y = element_text(size = 28, margin =  unit(c(0, 5, 0, 0), "mm")),
+        axis.text.x = element_text(size = 26, margin =  unit(c(3, 0, 0, 0), "mm")),
+        axis.text.y = element_text(size = 26, margin =  unit(c(0, 1, 0, 3), "mm")),
+        plot.margin = unit(c(0,0,0,30), "pt"))
+
+## Panel wrapping Fig2 a & b:
+## ----------------------------------------------------------------------------- 
+Fig2 <-  Fig_2A +Fig_2B+
+  plot_annotation(tag_levels = 'a') + 
+  theme(plot.tag = element_text(size = 22, face = "bold"))
+
+Fig_2A
+Fig_2B
+
+ggsave(Fig2,filename = "./Figs/Fig2_efficiency_malarone.png",units = "px", width = 6000, height = 3000)
+
+
+## Testing for difference in parasitic load between Treatment groups at first sampling
+## -----------------------------------------------------------------------------
+
+perm.t.test(as.numeric(as.character(df$Infection_intensity.1))~df$Treatment, progress = F)
+
+## Testing for Treatment effect on parasitemia change between first and second sampling
+## Note: 
+## intensity change -100 codes for individuals that were uninfected throughout 
+## the experiment!
+## -----------------------------------------------------------------------------
+lmerTest::lmer(intensity_change ~ Treatment + Year + days_resample + (1|Nest), 
+               data = df[!df$intensity_change %in% -100,]) %>%
+  summary()
+```
+
+## Infection stages as explanatory variable 
+
+Exploring differences in physiological measures that are associated with the infection stage (increase, peak or decreasing) of tested individuals. All models account for a number of fixed effects and non-independence among nest mates. 
+
+### Breathing rate
+
+
+```{r mixed model breathing rate}
+## Run model
+## ----------------------------------------------------------------------------- 
+lmer_br <- lmer(
+  Breathing_rate ~ Diff_Inf_Class + Treatment + 
+     Age_in_days + days_resample + Weight_g + Sex + Ambient_Temperature_AvgC + Year + (1|Nest),
+  data = df)
+
+## Obtain predicted values for each infection stage
+## -----------------------------------------------------------------------------
+mod_br <- get_model_data(lmer_br, type = 'pred', terms = "Diff_Inf_Class") %>%
+   mutate(x = factor(c("Uninfected","Increase","Peak","Decrease"), 
+                     levels = c("Uninfected","Increase","Peak","Decrease")))
+
+## Extract sample size for infection stage
+## -----------------------------------------------------------------------------
+n <- table(df$Diff_Inf_Class[!is.na(df$Breathing_rate)])
+
+## ad sample size as label
+## -----------------------------------------------------------------------------
+mod_br <- mod_br %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",n)), levels = c(paste0(x,"\nn= ",n))))
+
+mod_br <- mod_br[1:4,]
+
+## Plotting predicted values across infection stages
+## -----------------------------------------------------------------------------
+Fig_S1A <- 
+  
+  ggplot(mod_br) + 
+  aes(x,predicted) + 
+  geom_hline(yintercept = mean(mod_br$predicted, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = bquote("Breathing rate at T"[1])) + 
+  ylim(c(min(mod_br$conf.low) - 1.5,max(mod_br$conf.high) + 1.5)) + 
+  geom_errorbar(aes(ymin = mod_br$conf.low,ymax = mod_br$conf.high),colour = "black",size = 2, width = .1) + 
+  geom_errorbar(aes(ymin = mod_br$predicted - mod_br$std.error, ymax = mod_br$predicted + mod_br$std.error),
+                size = 8, colour = wes_palette("Zissou1",4), width = 0,) + 
+  geom_point(color = "black", size = 2) + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8,
+  aes(x = 1, y = max(mod_br$conf.high) + 1, xend = 4, yend = max(mod_br$conf.high) + 1)) + 
+  geom_text(aes(x = 2.5, y = max(mod_br$conf.high) + 1.5),
+  label = "n.s.", size = 5)
+```
+
+### Body temperature
+
+```{r mixed model body temp}
+## Model 
+## -----------------------------------------------------------------------------
+lmer_bt = lmer(
+  body_temperature ~ Diff_Inf_Class + Treatment + Ambient_Temperature_AvgC + 
+    Age_in_days + days_resample + Weight_g + Sex + Year + (1|Nest),
+  data = df)
+
+## Predicted values for each infection stage
+## -----------------------------------------------------------------------------
+mod_bt = get_model_data(lmer_bt,type = 'pred',terms = "Diff_Inf_Class") %>%
+  mutate(x = factor(c("Uninfected","Increase","Peak","Decrease"),
+                    levels = c("Uninfected","Increase","Peak","Decrease")))
+
+# Table with sample sizes specific for body temperature data
+n2 = table(df$Diff_Inf_Class[!is.na(df$body_temperature)])
+
+mod_bt <- mod_bt %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",n2)), levels = c(paste0(x,"\nn= ",n2))))
+
+mod_bt <- mod_bt[1:4,]
+
+# Plotting predicted values across infection stages
+Fig_S1B <- ggplot(mod_bt) + 
+  aes(x,predicted) + 
+  geom_hline(yintercept = mean(mod_bt$predicted, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = bquote("Body temperature at T"[1])) + 
+  geom_errorbar(aes(ymin = mod_bt$conf.low,ymax = mod_bt$conf.high),colour = "black",size = 2, width = .1) + 
+  geom_errorbar(aes(ymin = mod_bt$predicted - mod_bt$std.error,ymax = mod_bt$predicted + mod_bt$std.error),
+                size = 8,colour = wes_palette("Zissou1",4), width = 0) + 
+  geom_point(color = "black", outlier.shape = NA, size = 2, width = .3) + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title.y = element_text(size = 18, margin = unit(c(0,3,0,0),"mm")), 
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8,
+                 aes(x = 1, y = 40.6, xend = 4, yend = 40.6)) + 
+    geom_text(aes(x = 2.5, y = 40.7),
+              label = "n.s.", size = 5)
+```
+
+### Body condition change
+
+```{r mixed model delta body condition}
+## Model 
+## -----------------------------------------------------------------------------
+lmer_bc <- lmer(
+  delta_body_condition ~ Diff_Inf_Class + Treatment + Age_in_days + days_resample +
+    Sex + Year + (1|Nest),
+  data = df)
+
+# Predicted values for each infection stage
+mod_bc = get_model_data(lmer_bc,type = 'pred',terms = "Diff_Inf_Class") %>%
+  mutate(x = factor(c("Uninfected","Increase","Peak","Decrease"), 
+                  levels = c("Uninfected","Increase","Peak","Decrease")))
+
+# Table with sample sizes specific for body condition change data
+n3 = table(df$Diff_Inf_Class[!is.na(df$delta_body_condition)])
+
+mod_bc <- mod_bc %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",n3)), levels = c(paste0(x,"\nn= ",n3))))
+
+
+mod_bc <- mod_bc[1:4,]
+
+# Plotting predicted values across infection stages
+
+Fig_S1C = ggplot(mod_bc) + 
+  aes(x,predicted) + 
+  geom_hline(yintercept = mean(mod_bc$predicted, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = "Δ Body condition") + 
+  geom_errorbar(aes(ymin = mod_bc$conf.low,ymax = mod_bc$conf.high),colour = "black",size = 2, width = .1) + 
+  geom_errorbar(aes(ymin = mod_bc$predicted - mod_bc$std.error,ymax = mod_bc$predicted + mod_bc$std.error),
+                size = 8,colour = wes_palette("Zissou1",4), width = 0,) + 
+  geom_point(color = "black", outlier.shape = NA, size = 2, width = .3) + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8, aes(x = 1, y = max(mod_bc$conf.high) + 17, xend = 4, yend = max(mod_bc$conf.high) + 17)) + 
+  geom_text(aes(x = 2.5, y = max(mod_bc$conf.high) + 23),
+              label = "n.s.", size = 5)
+```
+
+### Body condition at T1
+
+```{r mixed model body condition - Stages}
+## Model 
+## -----------------------------------------------------------------------------
+lmer_bc2 <- lmer(
+  body_condition.2 ~ Diff_Inf_Class + Treatment + Age_in_days + days_resample +
+    Sex + Year + (1|Nest),
+  data = df)
+
+# Predicted values for each infection stage
+mod_bc2 = get_model_data(lmer_bc2,type = 'pred',terms = "Diff_Inf_Class") %>%
+  mutate(x = factor(c("Uninfected","Increase","Peak","Decrease"), 
+                  levels = c("Uninfected","Increase","Peak","Decrease")))
+
+# Table with sample sizes specific for body condition change data
+n3.2 = table(df$Diff_Inf_Class[!is.na(df$body_condition.2)])
+
+mod_bc2 <- mod_bc2 %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",n3.2)), levels = c(paste0(x,"\nn= ",n3.2))))
+
+mod_bc2 <- mod_bc2[1:4,]
+
+# Plotting predicted values across infection stages
+
+Fig_S1C2 = 
+  
+  ggplot(mod_bc2) + 
+  aes(x,predicted) + 
+  geom_hline(yintercept = mean(mod_bc2$predicted, na.rm = T), 
+             linetype = "dashed") + 
+  labs(x = "", 
+       y = "Body condition at T1") + 
+  geom_errorbar(aes(ymin = mod_bc2$conf.low,
+                    ymax = mod_bc2$conf.high),
+                colour = "black",
+                size = 2, 
+                width = .1) +
+  geom_errorbar(aes(ymin = mod_bc2$predicted - mod_bc2$std.error,
+                    ymax = mod_bc2$predicted + mod_bc2$std.error),
+                size = 8,
+                colour = wes_palette("Zissou1",4),
+                width = 0,) +
+  geom_point(color = "black", 
+             size = 2) + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8, 
+               aes(x = 1, 
+                   y = max(mod_bc2$conf.high) + 17, 
+                   xend = 4, 
+                   yend = max(mod_bc2$conf.high) + 17)) + 
+  geom_text(aes(x = 2.5, 
+                y = max(mod_bc2$conf.high) + 23),
+              label = "n.s.", size = 5)
+```
+
+
+### Growth rate
+
+```{r mixed model growth rate}
+# Model 
+lmer_gr = lmer(Growth_rate ~ Diff_Inf_Class + Treatment + Sex +
+                Age_in_days + days_resample + Year + (1|Nest), data = df)
+
+# Predicted values for each infection stages
+mod_gr = get_model_data(lmer_gr,type = 'pred',terms = "Diff_Inf_Class") %>%
+  mutate(x = factor(c("Uninfected","Increase","Peak","Decrease"), levels = c("Uninfected","Increase","Peak","Decrease")))
+
+# Table with sample sizes specific for growth rate data
+n4 = table(df$Diff_Inf_Class[!is.na(df$Growth_rate)])
+
+mod_gr <- mod_gr %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",n4)), levels = c(paste0(x,"\nn= ",n4))))
+
+mod_gr <- mod_gr[1:4,]
+
+# Plotting predicted values across infection stages
+
+Fig_S1D = ggplot(mod_gr) + 
+  aes(x,predicted) + 
+  geom_hline(yintercept = mean(mod_gr$predicted, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = "Growth rate") + 
+  geom_errorbar(aes(ymin = mod_gr$conf.low,ymax = mod_gr$conf.high),colour = "black",size = 2, width = .1) + 
+  geom_errorbar(aes(ymin = mod_gr$predicted - mod_gr$std.error,ymax = mod_gr$predicted + mod_gr$std.error), 
+                size = 8,colour = wes_palette("Zissou1",4), width = 0,) + 
+  geom_point(color = "black", outlier.shape = NA, size = 2, width = .3) + 
+  theme_classic() + 
+  theme(legend.position = "none", 
+        axis.title.y = element_text(size = 18, margin = unit(c(0, 3, 0, 0), "mm")),
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.margin = margin(0, 0, 0, 30, "pt"),
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8, aes(x = 1, y = max(mod_gr$conf.high) + 1.2, xend = 4, yend = max(mod_gr$conf.high) + 1.2)) + 
+    geom_text(aes(x = 2.5, y = max(mod_gr$conf.high) + 2),
+              label = "n.s.", size = 5)
+```
+
+## Summary four models
+
+The code below is used to summarise the model output and creates Figure 4 and Table 3 as shown in the manuscript.
+
+```{r}
+
+# Table 1 and Table S3 
+## -----------------------------------------------------------------------------
+sjPlot::tab_model(
+  lmer_br,lmer_bt,lmer_bc2,lmer_gr,
+  show.ci50 = T ,
+  show.stat = T,
+  string.stat = "t",
+  df.method = "kr",
+  show.df=T,
+  dv.labels = c(bquote("Breathing rate at T"[1]),
+                bquote("Body temperature at T"[1]),
+                bquote("Body condition at T"[1]),
+                "Growth rate"),
+  file = "./Tables/Table1_results_lmer_physiological_parameters_p.val_kr_Treatment2.html")
+```
+
+## Parasitemia as explanatory variable
+
+Exploration of effects by parasitemia levels on physiology of individuals. All models account for a number of fixed effects and non-independence among nest mates. 
+
+### Breathing rate
+
+```{r mixed model breathing rate 2}
+## Model:
+## Note: 
+## One Contrast for the Interaction of Infection intensity and treatment
+## is not estimatable due to the lack of infection level 4 for the Malarone-group
+## -----------------------------------------------------------------------------
+lmer_br_para = lmer(
+  Breathing_rate ~ Infection_intensity.2 + Treatment + Age_in_days + days_resample +
+    Weight_g + Sex + Ambient_Temperature_AvgC + Year + (1|Nest), data = df)
+
+## Rerun without intercept for plotting mean estimates 
+## -----------------------------------------------------------------------------
+lmer_br_para_no_intercept = lmer(
+  Breathing_rate ~ 0 + Infection_intensity.2 + Treatment + Age_in_days + days_resample + 
+    Weight_g + Sex + Ambient_Temperature_AvgC + Year + (1|Nest), data = df)
+
+## Obtain effect sizes for post-treatment parasitemia and derive model predictions
+## -----------------------------------------------------------------------------
+mod_br_para <- 
+  left_join(plot_model(lmer_br_para_no_intercept, se = F, )[["data"]][1:5,], ## 95% CI
+            plot_model(lmer_br_para_no_intercept, se = T, )[["data"]][1:5,]) %>%  ## SE
+  mutate(predicted = estimate) %>% 
+  mutate(lower_CI = conf.low) %>% 
+  mutate(higher_CI = conf.high) %>% 
+  mutate(se = std.error) %>% 
+  mutate(x = factor(c("0","1","2","3","4"), levels = c("0","1","2","3","4")))
+
+
+## Obtain sample sizes for labels 
+## ----------------------------------------------------------------------------- 
+m1 = table(df$Infection_intensity.2[!is.na(df$Breathing_rate)])
+mod_br_para <- mod_br_para %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",m1)), levels = c(paste0(x,"\nn= ",m1))))
+
+# Plotting predicted values across infection intensities
+## -----------------------------------------------------------------------------
+Fig_4A = ggplot(mod_br_para) + 
+  aes(as.factor(mod_br_para$x),mod_br_para$predicted) + 
+  geom_hline(yintercept = mean(mod_br_para$predicted, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = bquote("Breathing rate at T"[1])) + 
+  geom_errorbar(aes(ymin = mod_br_para$lower_CI,
+                    ymax = mod_br_para$higher_CI),colour = "black",size = 2, width = .1) + 
+  geom_errorbar(aes(ymin = mod_br_para$predicted - mod_br_para$se, 
+                    ymax = mod_br_para$predicted + mod_br_para$se),
+                size = 8, colour = wes_palette("Zissou1",5), width = 0,) + 
+  geom_point(color = "black", size = 4) + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8, aes(x = 1, y = max(mod_br_para$higher_CI, na.rm = T) + 1.2,
+                              xend = 5, yend = max(mod_br_para$higher_CI, na.rm = T) + 1.2)) + 
+    geom_text(aes(x = 3, y = max(mod_br_para$higher_CI, na.rm = T) + 2),
+              label = "P = 0.15", size = 6)
+```
+
+### Body temperature
+
+```{r  mixed model body temperature 2, warning=FALSE, message=F, echo=T}
+## Model:
+## Note: 
+## One Contrast for the Interaction of Infection intensity and treatment
+## is not estimatable due to the lack of infection level 4 for the Malarone-group
+## -----------------------------------------------------------------------------
+lmer_bt_para = lmer(
+  body_temperature ~ Infection_intensity.2 + Treatment + Age_in_days + days_resample +
+    Ambient_Temperature_AvgC + Weight_g + Sex + Year + (1|Nest), data = df)
+
+## Rerun without intercept for plotting mean estimates 
+## -----------------------------------------------------------------------------
+lmer_bt_para_no_intercept = lmer(
+  body_temperature ~ 0 + Infection_intensity.2 + Treatment + days_resample +
+    Ambient_Temperature_AvgC + Age_in_days + Weight_g + Sex + Year + (1|Nest), data = df)
+
+## Obtain effect sizes for post-treatment parasitemia and derive model predictions
+## -----------------------------------------------------------------------------
+mod_bt_para <- 
+  left_join(plot_model(lmer_bt_para_no_intercept, se = F, )[["data"]][1:5,], ## 95% CI
+            plot_model(lmer_bt_para_no_intercept, se = T, )[["data"]][1:5,]) %>%  ## SE
+  mutate(predicted = estimate) %>% 
+  mutate(lower_CI = conf.low) %>% 
+  mutate(higher_CI = conf.high) %>% 
+  mutate(se = std.error) %>% 
+  mutate(x = factor(c("0","1","2","3","4"), levels = c("0","1","2","3","4")))
+
+## Obtain sample sizes for labels 
+## ----------------------------------------------------------------------------- 
+m2 = table(df$Infection_intensity.2[!is.na(df$body_temperature)])
+mod_bt_para <- mod_bt_para %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",m2)), levels = c(paste0(x,"\nn= ",m2))))
+
+## Plotting predicted values across infection intensities
+## -----------------------------------------------------------------------------
+Fig_4B = ggplot(mod_bt_para) + 
+  aes(as.factor(mod_bt_para$x),mod_bt_para$predicted) + 
+  geom_hline(yintercept = mean(mod_bt_para$predicted, na.rm = T), linetype = "dashed") + 
+  geom_errorbar(aes(ymin = mod_bt_para$lower_CI,ymax = mod_bt_para$higher_CI),colour = "black",size = 2, width = .1) + 
+  geom_errorbar(aes(ymin = mod_bt_para$predicted - mod_bt_para$se,ymax = mod_bt_para$predicted + mod_bt_para$se),
+                size = 8,colour = wes_palette("Zissou1",5), width = 0,) + 
+  labs(x = "", y = bquote("Body temperature at T"[1])) + 
+  geom_point(color = "black", size = 4) + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(), 
+        axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8, aes(x = 1, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.2,
+                              xend = 5, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.2)) + 
+  geom_text(aes(x = 3, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.3),
+            label = "P = 0.006", size = 5) + 
+  geom_segment(size = .8,
+               aes(x = 1, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.2,
+                   xend = 1, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.1)) + 
+  geom_segment(size = .8,
+               aes(x = 5, y = max(mod_bt_para$higher_CI, na.rm = T) + 0.1,
+                   xend = 5, yend = max(mod_bt_para$higher_CI, na.rm = T) + 0.2))
+```
+
+### Body condition change
+
+```{r mixed model delta body condition change 2}
+## Model:
+## Note: 
+## One Contrast for the Interaction of Infection intensity and treatment
+## is not estimatable due to the lack of infection level 4 for the Malarone-group
+## -----------------------------------------------------------------------------
+lmer_bc_para <- lmer(
+  delta_body_condition ~ Infection_intensity.2 + Treatment + Age_in_days + days_resample +
+    Sex + Year + (1|Nest), data = df)
+
+## Rerun without intercept for plotting mean estimates 
+## -----------------------------------------------------------------------------
+lmer_bc_para_no_intercept <- lmer(
+  delta_body_condition ~ 0+ Infection_intensity.2 + Treatment + Age_in_days + days_resample +
+    Sex + Year + (1|Nest), data = df)
+
+## Obtain effect sizes for post-treatment parasitemia and derive model predictions
+## -----------------------------------------------------------------------------
+mod_bc_para <- 
+  left_join(plot_model(lmer_bc_para_no_intercept, se = F, )[["data"]][1:5,], ## 95% CI
+            plot_model(lmer_bc_para_no_intercept, se = T, )[["data"]][1:5,]) %>%  ## SE
+  mutate(predicted = estimate) %>% 
+  mutate(lower_CI = conf.low) %>% 
+  mutate(higher_CI = conf.high) %>% 
+  mutate(se = std.error) %>% 
+  mutate(x = factor(c("0","1","2","3","4"), levels = c("0","1","2","3","4")))
+
+# Table with sample sizes specific for body condition change data
+m3 = table(df$Infection_intensity.2[!is.na(df$delta_body_condition)])
+mod_bc_para <- mod_bc_para %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",m3)), levels = c(paste0(x,"\nn= ",m3))))
+
+# Plotting predicted values across infection intensities
+
+Fig_4C = ggplot(mod_bc_para) + 
+  aes(as.factor(mod_bc_para$x),mod_bc_para$predicted) + 
+  geom_hline(yintercept = mean(mod_bc_para$predicted, na.rm = T), linetype = "dashed") + 
+  labs(x = bquote("Parasitemia at T"[1]), y = "Δ Body condition") + 
+  geom_errorbar(aes(ymin = mod_bc_para$lower_CI, ymax = mod_bc_para$higher_CI),
+                colour = "black",size = 2, width = .1) + 
+  geom_errorbar(aes(ymin = mod_bc_para$predicted - mod_bc_para$se,
+                    ymax = mod_bc_para$predicted + mod_bc_para$se),
+                size = 8, colour = wes_palette("Zissou1",5), width = 0,) + 
+  geom_point(color = "black", size = 4) + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 20),  
+        axis.title.x = element_text(size = 20, vjust=-0.5),
+        axis.text = element_text(size = 16), 
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8,
+                 aes(x = 1, y = 60, xend = 5, yend = 60)) + 
+    geom_text(aes(x = 3, y = 67),
+              label = "P = 0.067", size = 5) + 
+  geom_segment(size = .8,
+                 aes(x = 1, y = 60, xend = 1, yend = 53)) + 
+  geom_segment(size = .8,
+                 aes(x = 5, y = 60, xend = 5, yend = 53))
+```
+
+### Body condition at T1
+
+```{r mixed model body condition - Parasitemia}
+## Model:
+## Note: 
+## One Contrast for the Interaction of Infection intensity and treatment
+## is not estimatable due to the lack of infection level 4 for the Malarone-group
+## -----------------------------------------------------------------------------
+lmer_bc_para2 <- lmer(
+  body_condition.2 ~ Infection_intensity.2 + Treatment + Age_in_days + days_resample +
+    Sex + Year + (1|Nest), data = df)
+
+## Rerun without intercept for plotting mean estimates 
+## -----------------------------------------------------------------------------
+lmer_bc_para_no_intercept2 <- lmer(
+  body_condition.2 ~ 0+ Infection_intensity.2 + Treatment + Age_in_days + days_resample +
+    Sex + Year + (1|Nest), data = df)
+
+## Obtain effect sizes for post-treatment parasitemia and derive model predictions
+## -----------------------------------------------------------------------------
+mod_bc_para2 <- 
+  left_join(plot_model(lmer_bc_para_no_intercept2, se = F, )[["data"]][1:5,], ## 95% CI
+            plot_model(lmer_bc_para_no_intercept2, se = T, )[["data"]][1:5,]) %>%  ## SE
+  mutate(predicted = estimate) %>% 
+  mutate(lower_CI = conf.low) %>% 
+  mutate(higher_CI = conf.high) %>% 
+  mutate(se = std.error) %>% 
+  mutate(x = factor(c("0","1","2","3","4"), levels = c("0","1","2","3","4")))
+
+# Table with sample sizes specific for body condition change data
+m3.2 = table(df$Infection_intensity.2[!is.na(df$body_condition.2)])
+
+mod_bc_para2 <- mod_bc_para2 %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",m3.2)), levels = c(paste0(x,"\nn= ",m3.2))))
+
+# Plotting predicted values across infection intensities
+
+Fig_4C2 = ggplot(mod_bc_para2) + 
+  aes(as.factor(mod_bc_para2$x),
+      mod_bc_para2$predicted) + 
+  geom_hline(yintercept = mean(mod_bc_para2$predicted, na.rm = T), 
+             linetype = "dashed") + 
+  labs(x = bquote("Parasitemia at T"[1]),
+       y = "Body condition at T1") + 
+  geom_errorbar(aes(ymin = mod_bc_para2$lower_CI, 
+                    ymax = mod_bc_para2$higher_CI),
+                colour = "black",
+                size = 2, 
+                width = .1) + 
+  geom_errorbar(aes(ymin = mod_bc_para2$predicted - mod_bc_para2$se,
+                    ymax = mod_bc_para2$predicted + mod_bc_para2$se),
+                size = 8, 
+                colour = wes_palette("Zissou1",5), 
+                width = 0,) + 
+  geom_point(color = "black", 
+             size = 4) + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 20),  
+        axis.title.x = element_text(size = 20, 
+                                    vjust=-0.5),
+        axis.text = element_text(size = 16), 
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(), 
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, 
+                                  face = "bold")) + 
+  geom_segment(size = .8,
+                 aes(x = 1, y = 60, xend = 5, yend = 60)) + 
+    geom_text(aes(x = 3, y = 67),
+              label = "P = 0.026", size = 5) + 
+  geom_segment(size = .8,
+                 aes(x = 1, y = 60, xend = 1, yend = 53)) + 
+  geom_segment(size = .8,
+                 aes(x = 5, y = 60, xend = 5, yend = 53))
+```
+
+### Growth rate
+
+```{r mixed model growth rate 2}
+## Model:
+## Note: 
+## One Contrast for the Interaction of Infection intensity and treatment
+## is not estimatable due to the lack of infection level 4 for the Malarone-group
+## -----------------------------------------------------------------------------
+lmer_gr_para = lmer(
+  Growth_rate ~ Infection_intensity.2 + Treatment +
+   Age_in_days + days_resample + Sex +  Year + (1 | Nest), data = df)
+
+## Rerun without intercept for plotting mean estimates 
+## -----------------------------------------------------------------------------
+lmer_gr_para_no_intercept  = lmer(
+  Growth_rate ~ 0 + Infection_intensity.2 + Treatment +
+    Age_in_days + days_resample + Sex +  Year + (1 | Nest), data = df)
+
+## Obtain effect sizes for post-treatment parasitemia and derive model predictions
+## -----------------------------------------------------------------------------
+mod_gr_para <- 
+  left_join(plot_model(lmer_gr_para_no_intercept, se = F, )[["data"]][1:5,], ## 95% CI
+            plot_model(lmer_gr_para_no_intercept, se = T, )[["data"]][1:5,]) %>%  ## SE
+  mutate(predicted = estimate) %>% 
+  mutate(lower_CI = conf.low) %>% 
+  mutate(higher_CI = conf.high) %>% 
+  mutate(se = std.error) %>% 
+  mutate(x = factor(c("0","1","2","3","4"), levels = c("0","1","2","3","4")))
+
+# Table with sample sizes specific for growth rate data
+m4 = table(df$Infection_intensity.2[!is.na(df$Growth_rate)])
+
+mod_gr_para <- mod_gr_para %>% 
+  mutate(x = factor(c(paste0(x,"\nn= ",m4)), levels = c(paste0(x,"\nn= ",m4))))
+
+# Plotting predicted values across infection intensities
+## -----------------------------------------------------------------------------
+Fig_4D = ggplot(mod_gr_para) + 
+  aes(as.factor(mod_gr_para$x),mod_gr_para$predicted) + 
+  geom_hline(yintercept = mean(mod_gr_para$predicted, na.rm = T), linetype = "dashed") + 
+  labs(x = bquote("Parasitemia at T"[1]), y = "Growth rate") + 
+  geom_errorbar(aes(ymin = mod_gr_para$lower_CI,
+                    ymax = mod_gr_para$higher_CI), colour = "black",size = 2, width = .1) + 
+  geom_errorbar(aes(ymin = mod_gr_para$predicted - mod_gr_para$se,
+                    ymax = mod_gr_para$predicted + mod_gr_para$se),size = 8, 
+                colour = wes_palette("Zissou1",5), width = 0) + 
+  geom_point(color = "black", outlier.shape = NA, size = 4, width = .3) + 
+  theme_classic() + 
+  theme(legend.position = "none", 
+        axis.title = element_text(size = 20),
+        axis.title.x = element_text(size = 20, vjust=-0.5),
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold")) + 
+  geom_segment(size = .8,
+               aes(x = 1, y = 30, xend = 5, yend = 30)) + 
+  geom_text(aes(x = 3, y = 31),
+            label = "P = 0.087", size = 5) + 
+  geom_segment(size = .8,
+               aes(x = 1, y = 29, xend = 1, yend = 30)) + 
+  geom_segment(size = .8,
+               aes(x = 5, y = 29, xend = 5, yend = 30))
+```
+
+### Summary four models
+
+```{r summary}
+## Create multipanel Figure 4
+## -----------------------------------------------------------------------------
+fig4 = Fig_4A + Fig_4B + Fig_4C2 + Fig_4D + plot_annotation(tag_levels = 'a') & 
+  theme(plot.tag = element_text(size = 16, face = "bold"))
+fig4
+
+ggsave(fig4,filename = "./Figs/Fig4_predicted_physio_param_infection_intensities_Treatment2.png",units = "px", width = 3700, height = 3700)
+
+## Table 2 
+## ----------------------------------------------------------------------------- 
+sjPlot::tab_model(
+  lmer_br_para,
+  lmer_bt_para,
+  lmer_bc_para2,
+  lmer_gr_para,
+  show.ci50 = T ,
+  show.df = T,
+  show.stat = T,
+  string.stat = "t",
+  p.val = "kr",
+  dv.labels = c(bquote("Breathing rate at T"[1]),
+                bquote("Body temperature at T"[1]),
+                bquote("Body condition at T"[1]),
+                "Growth rate"),
+  file = "./Tables/Table2_results_parasitemia_lmer_physiological_parameters_p.val_kr_Treatment2.html")
+```
+
+## Host health to parasitemia 
+
+```{r, warning=F,message=F}
+# Results presented in Table 2
+
+## Infection intensity as numerical variable
+## -----------------------------------------------------------------------------
+tol_resdata <- df %>% 
+  mutate(Infection_intensity.2 = as.numeric(Infection_intensity.2)) %>% 
+  mutate(Diff_Inf_Class = factor(Diff_Inf_Class, levels = c("Increase","Peak","Decrease")))
+
+## Modeling host health to Infection intensity
+## -----------------------------------------------------------------------------
+lm(delta_body_condition~Infection_intensity.2, data = tol_resdata) %>%
+summary()
+
+## Modeling host health to Infection intensity : Infection stages
+## -----------------------------------------------------------------------------
+tolres_deltamod = lm(delta_body_condition ~ Infection_intensity.2*Diff_Inf_Class,
+                     data = tol_resdata)
+summary(tolres_deltamod)
+
+## Comparison of intercepts
+## -----------------------------------------------------------------------------
+emm = emmeans(tolres_deltamod, "Diff_Inf_Class", at = list(Infection_intensity.2 = 0))
+pairs(emm)
+
+## Pairwise comparison of slopes
+## -----------------------------------------------------------------------------
+lms_delta = lstrends(tolres_deltamod, ~ Diff_Inf_Class:Infection_intensity.2,
+                     var = "Infection_intensity.2")
+contrast(lms_delta,"pairwise")
+
+## Comparison of slopes to zero
+## -----------------------------------------------------------------------------
+
+summary(lms_delta, infer = T)
+
+## Plotting body condition change with the interaction second infection intensity - infection stage
+## -----------------------------------------------------------------------------
+tolres <- 
+  ggplot(data = filter(df, !Infection_intensity.2 %in% c(NA,0), !Diff_Inf_Class %in% NA),
+         aes(y = delta_body_condition, x = as.numeric(Infection_intensity.2))) + 
+  geom_jitter(size = 2, alpha = 0.5, width=0.2) +
+  geom_line(y=0, linetype='dashed')+
+  geom_smooth(alpha = 0.2, size = 1.5, method = 'lm',se = T, width = 0.2) + 
+  labs(y = "\U0394 Body condition", x = bquote("Parasitemia at T"[1])) + 
+  scale_x_continuous(breaks = seq(2,5,1),labels = c("1","2","3","4")) + 
+  theme_bw()+
+  annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = Inf, xend = Inf, size = 0.5) +
+  annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = -Inf, xend = -Inf, size = 0.5) +
+  theme(legend.position = "none", 
+        axis.text = element_text(size = 14), 
+        axis.title = element_text(size = 20),
+        strip.text = element_text(face = "bold", size = 16),
+        axis.title.x = element_text(vjust= 0.2))
+
+
+tolres_facets <- 
+  ggplot(data = filter(df, !Infection_intensity.2 %in% c(NA,0), !Diff_Inf_Class %in% NA),
+         aes(y = delta_body_condition, x = as.numeric(Infection_intensity.2), col = Diff_Inf_Class)) + 
+  geom_jitter(size = 2, alpha = 0.5, width=0.2) + 
+  geom_line(y=0, linetype='dashed')+
+  geom_smooth(alpha = 0.3, size = 1.5, method = 'lm',se = T, width = 0.2) + 
+  facet_wrap(facets = 'Diff_Inf_Class') +
+  labs(y = "",x = bquote("Parasitemia at T"[1]),
+       col = 'Infection stages') + 
+  scale_x_continuous(breaks = seq(2,5,1),labels = c("1","2","3","4")) + 
+  scale_color_manual(labels = c("Increasing", "Peak", "Decreasing"),
+                     values = c("#3B9AB2", "#E1AF00", "#F21A00")) + 
+  theme_bw()+
+  annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = Inf, xend = Inf, size = 0.5) +
+  annotate(geom = 'segment', y = -Inf, yend = Inf, color = 'black', x = -Inf, xend = -Inf, size = 0.5) +
+  theme(legend.position = "none", 
+        axis.text = element_text(size = 14), 
+        axis.title = element_text(size = 20),
+        strip.text = element_text(face = "bold", size = 16),
+        axis.title.x = element_text(vjust= 0.2))
+
+## Arrange plot for three infection stages 
+## -----------------------------------------------------------------------------
+g <- ggplot_gtable(ggplot_build(tolres_facets))
+stripr <- which(grepl('strip-t', g$layout$name))
+fills <- c("#4CC6E5", "#F7C600", "#FF5643")
+k <- 1
+for (i in stripr) {
+ j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder))
+g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]
+k <- k + 1
+}
+
+g = arrangeGrob(g)
+
+## Saving Figure 3
+## -----------------------------------------------------------------------------
+fig3 = tolres + g + plot_layout(width=c(1,2)) &  
+  theme(plot.tag = element_text(size = 16, face = "bold")) 
+fig3
+
+ggsave(fig3,filename = "./Figs/Fig3.2_delta_body_condition_to_parasitemia_second.png",units = "px", width = 3700, height = 1700)
+
+## Comparing means parasitemia X stages
+df %>% mutate(para_stage=factor(paste(df$Infection_intensity.2,df$Diff_Inf_Class,sep='_'), levels=c('1_Increase',"2_Increase","2_Peak","3_Increase","3_Peak",'4_Increase','4_Peak','3_Decrease',"2_Decrease","1_Decrease", "0_Decrease")))  %>% 
+  mutate(treat_stage=factor(paste(df$Treatment,df$Diff_Inf_Class,sep='_'))) -> df
+
+ggplot(df)+
+  aes(para_stage,delta_body_condition)+
+  geom_boxplot()+
+  geom_jitter()+
+  stat_n_text()+
+  geom_hline(yintercept = mean(df$delta_body_condition), linetype = 2)+
+  geom_hline(yintercept = 0,colour = 'red')+
+  stat_compare_means(ref.group = ".all.",hide.ns = T,method = "t.test")
+
+## Comparing physio parameters between sucessfully treated and rest 
+  
+comp=list(c("Malarone_Decrease","Malarone_not_decrease"),c("Malarone_Decrease","Malarone_Uninfected"),c("Malarone_not_decrease", "Malarone_Uninfected"))
+  
+ggplot(df)+
+    aes(treat_stage, delta_body_condition)+
+    geom_hline(yintercept = mean(df$delta_body_condition), linetype = 2)+
+    geom_hline(yintercept = 0,colour = 'red')+
+    stat_n_text()+
+    geom_boxplot()+
+    stat_compare_means(comparisons = comp)
+
+  
+ggplot(df)+
+    aes(treat_stage, Breathing_rate)+
+    geom_hline(yintercept = mean(df$Breathing_rate), linetype = 2)+
+    geom_hline(yintercept = 0,colour = 'red')+
+    stat_n_text()+
+    geom_boxplot()+
+    stat_compare_means(comparisons = comp)
+
+  
+ggplot(df)+
+    aes(treat_stage, body_temperature)+
+    geom_hline(yintercept = mean(df$body_temperature), linetype = 2)+
+    geom_hline(yintercept = 0,colour = 'red')+
+    stat_n_text()+
+    geom_boxplot()+
+    stat_compare_means(comparisons = comp)
+
+  
+ggplot(df)+
+    aes(treat_stage, Growth_rate)+
+    geom_hline(yintercept = mean(df$Growth_rate), linetype = 2)+
+    geom_hline(yintercept = 0,colour = 'red')+
+    stat_n_text()+
+    geom_boxplot()+
+    stat_compare_means(comparisons = comp)
+```
+
+## Supplementary figures
+
+Creating supplementary figures:
+
+```{r}
+
+figS1 <- Fig_S1A + Fig_S1B + Fig_S1C2 + Fig_S1D + plot_annotation(tag_levels = 'a') & 
+  theme(plot.tag = element_text(size = 16, face = "bold"))
+figS1
+
+## Plotting observed values across infection stages
+## ----------------------------------------------------------------------------- 
+
+ggsave(figS1,filename = "./Figs/FigS1_predicted_physio_param_infection_stages_Treatment2.png",units = "px", width = 3700, height = 3700)
+
+
+Fig_S2A = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
+  aes(Diff_Inf_Class,Breathing_rate) + 
+  geom_hline(yintercept = mean(df$Breathing_rate, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = bquote("Breathing rate at T"[1])) + 
+  geom_jitter(color = "lightgrey", size = 2, width = .3) + 
+  stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
+               size = 2.8 , width = 0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x)) + 
+  stat_summary(fun = mean, colour = "black", geom = "point", 
+               size = 5, show.legend = FALSE) + 
+  stat_n_text() +  
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16), 
+        axis.line.x = element_blank(), 
+        axis.ticks.x = element_blank(),
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+Fig_S2B = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
+  aes(Diff_Inf_Class,body_temperature) + 
+  geom_hline(yintercept = mean(df$body_temperature, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = bquote("Body temperature at T"[1])) + 
+  geom_jitter(color = "lightgrey", size = 2, width = .3) + 
+  stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
+               size = 2.8 , width = 0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x)) + 
+  stat_summary(fun = mean, colour = "black", geom = "point", 
+               size = 5 ,show.legend = FALSE) + 
+  stat_n_text() + 
+  theme_classic() + 
+  theme(legend.position = "none", 
+        axis.title = element_text(size = 20), 
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(), 
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+Fig_S2C = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
+  aes(Diff_Inf_Class,body_condition.2) + 
+  geom_hline(yintercept = mean(df$body_condition.2, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = "Body condition at T1") + 
+  geom_jitter(color = "lightgrey", size = 2, width = .3) + 
+  stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
+               size = 2.8 , width = 0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x)) + 
+  stat_summary(fun = mean, colour = "black", geom = "point", 
+               size = 5 ,show.legend = FALSE) + 
+  stat_n_text() + 
+  theme_classic() + 
+  theme(legend.position = "none", 
+        axis.title = element_text(size = 20), 
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(), 
+        axis.ticks.x = element_blank(),
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+Fig_S2D = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
+  aes(Diff_Inf_Class,Growth_rate) + 
+  geom_hline(yintercept = mean(df$Growth_rate, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = "Growth rate") + 
+  geom_jitter(color = "lightgrey", size = 2, width = .3) + 
+  stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
+               size = 2.8 , width = 0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x)) + 
+  stat_summary(fun = mean, colour = "black", geom = "point", 
+               size = 5 ,show.legend = FALSE) + 
+  stat_n_text() + 
+  theme_classic() + 
+  theme(legend.position = "none", 
+        axis.title = element_text(size = 20), 
+        axis.text = element_text(size = 16), 
+        axis.line.x = element_blank(), 
+        axis.ticks.x = element_blank(), 
+        plot.margin = margin(0, 0, 0, 0, "cm"), 
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+## Saving Figure S2
+## ----------------------------------------------------------------------------- 
+figs2 = Fig_S2A + Fig_S2B + Fig_S2C + Fig_S2D + plot_annotation(tag_levels = 'a') & 
+  theme(plot.tag = element_text(size = 16, face = "bold"))
+figs2
+
+ggsave(figs2,filename = "./Figs/FigS2_observed_physio_param_infection_stages_Treatment.png",units = "px", width = 3500, height = 3800)
+
+## Plotting observed values across infection intensities
+## ----------------------------------------------------------------------------- 
+Fig_S3A = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
+  aes(Infection_intensity.2,Breathing_rate) + 
+  geom_hline(yintercept = mean(df$Breathing_rate, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = bquote("Breathing rate at T"[1])) + 
+  geom_jitter(color = "lightgrey", size = 2, width = .3) + 
+  stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
+               size = 2.8 , width = 0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x)) + 
+  stat_summary(fun = mean, colour = "black", geom = "point", 
+               size = 5, show.legend = FALSE) + 
+  stat_n_text() + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+Fig_S3B <- ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
+  aes(Infection_intensity.2,body_temperature) + 
+  geom_hline(yintercept = mean(df$body_temperature, na.rm = T), linetype = "dashed") + 
+  labs(x = "", y = bquote("Body temperature at T"[1])) + 
+  geom_jitter(color = "lightgrey", size = 2, width = .3) + 
+  stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
+               size = 2.8 , width = 0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x)) + 
+  stat_summary(fun = mean, colour = "black", geom = "point", 
+               size = 5, show.legend = FALSE) + 
+  stat_n_text() + 
+  theme_classic() + 
+  theme(legend.position = "none",
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16), 
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+Fig_S3C = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
+  aes(Infection_intensity.2,body_condition.2) + 
+  geom_hline(yintercept = mean(df$body_condition.2, na.rm = T), linetype = "dashed") + 
+  labs(x = bquote("Parasitemia at T"[1]), y = bquote("Body condition at T"[1])) + 
+  geom_jitter(color = "lightgrey", size = 2, width = .3) + 
+  stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
+               size = 2.8 , width = 0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x)) + 
+  stat_summary(fun = mean, colour = "black", geom = "point", 
+               size = 5, show.legend = FALSE) + 
+  stat_n_text() + 
+  theme_classic() + 
+  theme(legend.position = "none", 
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 16), 
+        axis.line.x = element_blank(), 
+        axis.ticks.x = element_blank(), plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+Fig_S3D = ggplot(df[!df$Infection_intensity.2 %in% NA,]) + 
+  aes(Infection_intensity.2,Growth_rate) + 
+  geom_hline(yintercept = mean(df$Growth_rate, na.rm = T), linetype = "dashed") + 
+  labs(x = bquote("Parasitemia at T"[1]), y = "Growth rate") + 
+  geom_jitter(color = "lightgrey", size = 2, width = .3) + 
+  stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
+               size = 2.8, width = 0.05, show.legend = FALSE, 
+               fun.max = function(x) mean(x) + sd(x),
+               fun.min = function(x) mean(x) - sd(x)) + 
+  stat_summary(fun = mean, colour = "black", geom = "point", 
+               size = 5, show.legend = FALSE) + 
+  stat_n_text() + 
+  theme_classic() + 
+  theme(legend.position = "none", 
+        axis.title = element_text(size = 20), 
+        axis.text = element_text(size = 16),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.margin = margin(0, 0, 0, 0, "cm"),
+        plot.title = element_text(hjust = 0.5, face = "bold"))
+
+## Saving figure S3
+## ----------------------------------------------------------------------------- 
+figs3 = Fig_S3A + Fig_S3B + Fig_S3C + Fig_S3D + plot_annotation(tag_levels = 'a') & 
+  theme(plot.tag = element_text(size = 16, face = "bold"))
+figs3
+
+ggsave(figs3,filename = "./Figs/FigS3_observed_physio_param_parasitemia_Treatment.png",units = "px", width = 3500, height = 3800)
+
+## Plotting effect sizes of 'infection stages' models
+## ----------------------------------------------------------------------------- 
+Fig_S4A = plot_model(
+  lmer_br,
+  sort.est = T,
+  se = T,
+  title = "Breathing rate at T1",
+  axis.labels = 
+    rev(c("Age (days) at T1",
+          "Treatment [Malarone] at T0",
+          "Increasing parasitemia",
+          "Peak parasitemia",
+          "Decreasing parasitemia",
+          "Sex [Males]",
+          "Sampling interval",
+          "Weight (g) at T1",
+          "Ambient temperature at T1",
+          "Year [2019]",
+          "Year [2018]",
+          "Year [2020]")))
+
+Fig_S4B = plot_model(
+  lmer_bt,
+  sort.est = T,
+  se = T,
+  title = "Body temperature at T1",
+  axis.labels = 
+    rev(c("Ambient temperature at T1",
+          "Year [2020]",
+          "Age (days) at T1",
+          "Decreasing parasitemia",
+          "Weight (g) at T1",
+          "Treatment [Malarone] at T0",
+          "Sex [Males]", 
+          "Peak parasitemia",
+          "Increasing parasitemia",
+          "Sampling interval")))
+
+Fig_S4C = plot_model(
+  lmer_bc2,
+  sort.est = T,
+  se = T,
+  title = "Body condition at T1",
+  axis.labels =
+    rev(c("Year [2020]",
+          "Year [2018]",
+          "Year [2019]",
+          "Sampling interval",
+          "Treatment [Malarone] at T0",
+          "Age (days) at T1",
+          "Increasing parasitemia",
+          "Sex [Males]",
+          "Peak parasitemia",
+          "Decreasing parasitemia")))
+
+Fig_S4D = plot_model(
+  lmer_gr,
+  sort.est = T,
+  se = T,
+  title = "Growth rate", 
+  axis.labels = 
+    rev(c("Year [2020]",
+          "Year [2018]",
+          "Sampling interval",
+          "Year [2019]",
+          "Treatment [Malarone] at T0",
+          "Increasing parasitemia",
+          "Peak parasitemia",
+          "Decreasing parasitemia",
+          "Sex [Males]",
+          "Age (days) at T1")))
+
+## Saving Figure S4
+## ----------------------------------------------------------------------------- 
+figs4 = Fig_S4A + Fig_S4B + Fig_S4C + Fig_S4D + plot_annotation(tag_levels = 'a') & 
+  theme(axis.text = element_text(size=14), plot.tag = element_text(size = 16, face = "bold"))
+figs4
+
+ggsave(figs4,filename = "./Figs/FigS4_effect_sizes_param_stages.png",units = "px", width = 3500, height = 3800)
+
+## Plotting effect sizes of 'infection intensities' models
+## ----------------------------------------------------------------------------- 
+Fig_S5A = plot_model(
+  lmer_br_para,
+  sort.est = T,
+  se = T,
+  title = "Breathing rate at T1",
+  axis.labels = 
+    rev(c("Age (days) at T1",
+          "Parasitemia 1 at T1", 
+          "Parasitemia 4 at T1",
+          "Treatment [Malarone] at T0",
+          "Parasitemia 2 at T1",
+          "Parasitemia 3 at T1",
+          "Sex [Males]",
+          "Sampling interval",
+          "Weight (g) at T1",
+          "Ambient temperature at T1",
+          "Year [2019]",
+          "Year [2018]",
+          "Year [2020]")))
+
+Fig_S5B = plot_model(
+  lmer_bt_para,
+  sort.est = T,
+  se = T,
+  title = "Body temperature at T1",
+  axis.labels = 
+    rev(c("Ambient temperature at T1",
+          "Year [2020]",
+          "Age (days) at T1",
+          "Parasitemia 1 at T1",
+          "Parasitemia 2 at T1",
+          "Weight (g) at T1",
+          "Treatment [Malarone] at T0",
+          "Sex [Males]",
+          "Parasitemia 3 at T1",
+          "Sampling interval",
+          "Parasitemia 4 at T1")))
+
+Fig_S5C = plot_model(
+  lmer_bc_para2,
+  sort.est = T,
+  se = T,
+  title = "Body condition at T1",
+  axis.labels = 
+    rev(c("Year [2020]",
+          "Year [2018]",
+          "Year [2019]",
+          "Sampling interval",
+          "Parasitemia 1 at T1",
+          "Treatment [Malarone] at T0",
+          "Age (days) at T1",
+          "Sex [Males]",
+          "Parasitemia 2 at T1",
+          "Parasitemia 3 at T1",
+          "Parasitemia 4 at T1")))
+
+Fig_S5D = plot_model(
+  lmer_gr_para,
+  sort.est = T,
+  se = T,
+  title = "Growth rate", 
+  axis.labels = 
+    rev(c("Year [2020]",
+          "Year [2018]",
+          "Sampling interval",
+          "Year [2019]",
+          "Parasitemia 1 at T1",
+          "Treatment [Malarone] at T0",
+          "Parasitemia 2 at T1",
+          "Parasitemia 3 at T1",
+          "Sex [Males]",
+          "Age (days) at T1",
+          "Parasitemia 4 at T1")))
+
+## Figure S4
+## ----------------------------------------------------------------------------- 
+figs5 = Fig_S5A + Fig_S5B + Fig_S5C + Fig_S5D + plot_annotation(tag_levels = 'a') & 
+  theme(axis.text = element_text(size=14), plot.tag = element_text(size = 16, face = "bold"))
+figs5
+
+ggsave(figs5, filename = "./Figs/FigS5_effect_sizes_param_intensities.png",units = "px", width = 3500, height = 3800)
+
+## Additional figure: body condition at first sampling according to L. prevalence
+##------------------------------------------------------------------------------
+
+figs6 = ggplot(df)+
+          aes(Prevalence1, body_condition.1)+
+          geom_jitter(width=0.1)+
+          geom_boxplot()+
+          stat_summary(fun = mean, colour = "black", geom = "point", size = 5, show.legend = FALSE)+
+          labs(x=bquote("Leucocytozoon prevalence at T"[1]),y=bquote("Body condition at T"[0]))+
+          stat_compare_means(method = 't.test')
+
+figs6
+
+ggsave(figs6,filename = "./Figs/FigS6_body_condition_1_to_prevalence.png",units = "px", width = 3700, height = 3700)
+```
+
+## Estimating measurment error of body temperature
+
+```{r, message=F, warnings=F}
+## Loading repeated temperature measures 
+## ----------------------------------------------------------------------------- 
+rTemp = read.csv2("./Repeatability_temperatures.csv", h = T, dec = '.') %>% 
+  mutate(ID = as.factor(ID)) %>% 
+  mutate(Date = as.Date(Date, format = '%d/%m/%y')) %>% 
+  mutate(Repeat = as.factor(Repeat))
+
+## Estimating repeatability of paired measures
+## -----------------------------------------------------------------------------
+rpt(Temperature ~ (1|ID), grname = "ID", data = rTemp, npermut = 1000, datatype = 'Gaussian')
+
+## Estimating the variance of error
+## -----------------------------------------------------------------------------
+rt = ddply(rTemp,.(ID),summarize, mean = mean(Temperature), sd = sd(Temperature))
+
+## Values of mean and standard deviation of average paired body temperatures
+## ----------------------------------------------------------------------------- 
+mean(rt$mean)
+mean(rt$sd)
+```
+
+```{r}
+sessionInfo()
+```
+
