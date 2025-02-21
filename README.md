@@ -6,7 +6,7 @@
     
 -   **MS_physiology_infection.html** display the code for all analyses of this manuscript.
 
--   **physiology_infection_stage_full_wideformat.csv** is the data file that contains individual specific data
+-   **physiology_infection_stage_full_wideformat.csv** is the data file that contains individual specific data (as of Aug. 9th 2022)
 
 -   **Legend columns data.txt** explains the meaning of the columns in **physiology_infection_stage_full_wideformat.csv**
 
@@ -19,4 +19,4 @@
 
 <img src="Figs/Fig1_dynamic_parasitemia.png" style="display: block; margin: auto;" />
 
-<img src="Figs/Fig4_predicted_physio_param_infection_intensities_Treatment2.png" style="display: block; margin: auto;" />
+<img src="Figs/Fig4_predicted_physio_param_infection_intensities.png" style="display: block; margin: auto;" />
