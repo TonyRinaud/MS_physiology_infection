@@ -18,35 +18,15 @@ knitr::opts_chunk$set(
 A number of packages, all of which are available on CRAN are required to repeat analyses presented in this document. The code chunk below allows to load them for the analyses. Any missing package needs to be installed before, using the 'install.packages())' function:
 
 ```{r packages, message=F, warning=F}
-library(chron)
-library(cowplot)
-library(EnvStats)
-library(lme4)
-library(lmerTest)
-library(lsmeans)
-library(ggalt)
-library(ggdist)
-library(ggeffects)
-library(ggplot2)
-library(ggpubr)
-library(ggrepel)
-library(ggridges)
-library(ggsci)
-library(ggsignif)
-library(grid)
-library(gridExtra)
-library(magrittr)
-library(patchwork)
-library(plyr)
-library(rptR)
-library(RVAideMemoire)
-library(sjPlot)
-library(sjlabelled)
-library(sjmisc)
-library(tidybayes)
-library(tidyverse)
-library(wesanderson)
-library(car)
+
+require(easypackages)
+
+libraries("chron", "cowplot","EnvStats","lsmeans","ggalt","ggdist","ggeffects",
+          "ggplot2","ggpubr","ggrepel","ggridges","ggsci","ggsignif","grid",
+          "gridExtra","magrittr","patchwork","plyr","rptR","RVAideMemoire",
+          "sjPlot","sjlabelled","sjmisc","tidybayes","tidyverse","wesanderson",
+          "car","ggh4x","ggforce","lme4","lmerTest")
+
 ## set theme for ggplot objects
 theme_set(theme_tidybayes() + panel_border())
 ```
@@ -199,7 +179,7 @@ Fig_2B <- ggplot(mean_infint) +
 ## Panel wrapping Fig2 a & b:
 ## ----------------------------------------------------------------------------- 
 Fig2 <-  Fig_2A +Fig_2B+
-  plot_annotation(tag_levels = 'a') + 
+  plot_annotation(tag_levels = 'A',tag_suffix = ')') + 
   theme(plot.tag = element_text(size = 22, face = "bold"))
 
 Fig_2A
@@ -407,7 +387,7 @@ Fig_S1C2 =
   geom_hline(yintercept = mean(mod_bc2$predicted, na.rm = T), 
              linetype = "dashed") + 
   labs(x = "", 
-       y = "Body condition at T1") + 
+       y = bquote("Body condition at T"[1])) + 
   geom_errorbar(aes(ymin = mod_bc2$conf.low,
                     ymax = mod_bc2$conf.high),
                 colour = "black",
@@ -739,7 +719,7 @@ Fig_4C2 = ggplot(mod_bc_para2) +
   geom_hline(yintercept = mean(mod_bc_para2$predicted, na.rm = T), 
              linetype = "dashed") + 
   labs(x = bquote("Parasitemia at T"[1]),
-       y = "Body condition at T1") + 
+       y = bquote("Body condition at T"[1])) + 
   geom_errorbar(aes(ymin = mod_bc_para2$lower_CI, 
                     ymax = mod_bc_para2$higher_CI),
                 colour = "black",
@@ -843,11 +823,12 @@ Fig_4D = ggplot(mod_gr_para) +
 ```{r summary}
 ## Create multipanel Figure 4
 ## -----------------------------------------------------------------------------
-fig4 = Fig_4A + Fig_4B + Fig_4C2 + Fig_4D + plot_annotation(tag_levels = 'a') & 
+fig4 = Fig_4A + Fig_4B + Fig_4C2 + Fig_4D + plot_annotation(tag_levels = 'A', 
+                  tag_suffix = ')') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 fig4
 
-ggsave(fig4,filename = "./Figs/Fig4_predicted_physio_param_infection_intensities_Treatment2.png",units = "px", width = 3700, height = 3700)
+ggsave(fig4,filename = "./Figs/Fig4_predicted_physio_param_infection_intensities.png",units = "px", width = 3700, height = 3700)
 
 ## Table 2 
 ## ----------------------------------------------------------------------------- 
@@ -925,7 +906,6 @@ tolres <-
         strip.text = element_text(face = "bold", size = 16),
         axis.title.x = element_text(vjust= 0.2))
 
-
 tolres_facets <- 
   ggplot(data = filter(df, !Infection_intensity.2 %in% c(NA,0), !Diff_Inf_Class %in% NA),
          aes(y = delta_body_condition, x = as.numeric(Infection_intensity.2), col = Diff_Inf_Class)) + 
@@ -963,17 +943,18 @@ g = arrangeGrob(g)
 
 ## Saving Figure 3
 ## -----------------------------------------------------------------------------
-fig3 = tolres + g + plot_layout(width=c(1,2)) &  
+fig3 = tolres + g + plot_layout(width=c(1,2)) + plot_annotation(tag_levels = 'A',
+                    tag_suffix = ')') &
   theme(plot.tag = element_text(size = 16, face = "bold")) 
 fig3
 
-ggsave(fig3,filename = "./Figs/Fig3.2_delta_body_condition_to_parasitemia_second.png",units = "px", width = 3700, height = 1700)
+ggsave(fig3,filename = "./Figs/Fig3_delta_body_condition_to_parasitemia_second.png",units = "px", width = 3700, height = 1700)
 
 ## Comparing means parasitemia X stages
 df %>% mutate(para_stage=factor(paste(df$Infection_intensity.2,df$Diff_Inf_Class,sep='_'), levels=c('1_Increase',"2_Increase","2_Peak","3_Increase","3_Peak",'4_Increase','4_Peak','3_Decrease',"2_Decrease","1_Decrease", "0_Decrease")))  %>% 
   mutate(treat_stage=factor(paste(df$Treatment,df$Diff_Inf_Class,sep='_'))) -> df
 
-ggplot(df)+
+g0=ggplot(df)+
   aes(para_stage,delta_body_condition)+
   geom_boxplot()+
   geom_jitter()+
@@ -986,7 +967,7 @@ ggplot(df)+
   
 comp=list(c("Malarone_Decrease","Malarone_not_decrease"),c("Malarone_Decrease","Malarone_Uninfected"),c("Malarone_not_decrease", "Malarone_Uninfected"))
   
-ggplot(df)+
+g1=ggplot(df)+
     aes(treat_stage, delta_body_condition)+
     geom_hline(yintercept = mean(df$delta_body_condition), linetype = 2)+
     geom_hline(yintercept = 0,colour = 'red')+
@@ -995,7 +976,7 @@ ggplot(df)+
     stat_compare_means(comparisons = comp)
 
   
-ggplot(df)+
+g2=ggplot(df)+
     aes(treat_stage, Breathing_rate)+
     geom_hline(yintercept = mean(df$Breathing_rate), linetype = 2)+
     geom_hline(yintercept = 0,colour = 'red')+
@@ -1004,7 +985,7 @@ ggplot(df)+
     stat_compare_means(comparisons = comp)
 
   
-ggplot(df)+
+g3=ggplot(df)+
     aes(treat_stage, body_temperature)+
     geom_hline(yintercept = mean(df$body_temperature), linetype = 2)+
     geom_hline(yintercept = 0,colour = 'red')+
@@ -1013,7 +994,7 @@ ggplot(df)+
     stat_compare_means(comparisons = comp)
 
   
-ggplot(df)+
+g4=ggplot(df)+
     aes(treat_stage, Growth_rate)+
     geom_hline(yintercept = mean(df$Growth_rate), linetype = 2)+
     geom_hline(yintercept = 0,colour = 'red')+
@@ -1028,14 +1009,14 @@ Creating supplementary figures:
 
 ```{r}
 
-figS1 <- Fig_S1A + Fig_S1B + Fig_S1C2 + Fig_S1D + plot_annotation(tag_levels = 'a') & 
+figS1 <- Fig_S1A + Fig_S1B + Fig_S1C2 + Fig_S1D + plot_annotation(tag_levels = 'A', tag_suffix = ")") & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 figS1
 
 ## Plotting observed values across infection stages
 ## ----------------------------------------------------------------------------- 
 
-ggsave(figS1,filename = "./Figs/FigS1_predicted_physio_param_infection_stages_Treatment2.png",units = "px", width = 3700, height = 3700)
+ggsave(figS1,filename = "./Figs/FigS1_predicted_physio_param_infection_stages.png",units = "px", width = 3700, height = 3700)
 
 
 Fig_S2A = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
@@ -1083,7 +1064,7 @@ Fig_S2B = ggplot(df[!df$Diff_Inf_Class %in% NA,]) +
 Fig_S2C = ggplot(df[!df$Diff_Inf_Class %in% NA,]) + 
   aes(Diff_Inf_Class,body_condition.2) + 
   geom_hline(yintercept = mean(df$body_condition.2, na.rm = T), linetype = "dashed") + 
-  labs(x = "", y = "Body condition at T1") + 
+  labs(x = "", y = bquote("Body condition at T"[1])) + 
   geom_jitter(color = "lightgrey", size = 2, width = .3) + 
   stat_summary(fun = mean, colour = "cornflowerblue", geom = "errorbar", 
                size = 2.8 , width = 0.05, show.legend = FALSE, 
@@ -1124,11 +1105,12 @@ Fig_S2D = ggplot(df[!df$Diff_Inf_Class %in% NA,]) +
 
 ## Saving Figure S2
 ## ----------------------------------------------------------------------------- 
-figs2 = Fig_S2A + Fig_S2B + Fig_S2C + Fig_S2D + plot_annotation(tag_levels = 'a') & 
+figs2 = Fig_S2A + Fig_S2B + Fig_S2C + Fig_S2D + plot_annotation(tag_levels = 'A',
+                  tag_suffix = ')') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 figs2
 
-ggsave(figs2,filename = "./Figs/FigS2_observed_physio_param_infection_stages_Treatment.png",units = "px", width = 3500, height = 3800)
+ggsave(figs2,filename = "./Figs/FigS2_observed_physio_param_infection_stages.png",units = "px", width = 3500, height = 3800)
 
 ## Plotting observed values across infection intensities
 ## ----------------------------------------------------------------------------- 
@@ -1215,11 +1197,11 @@ Fig_S3D = ggplot(df[!df$Infection_intensity.2 %in% NA,]) +
 
 ## Saving figure S3
 ## ----------------------------------------------------------------------------- 
-figs3 = Fig_S3A + Fig_S3B + Fig_S3C + Fig_S3D + plot_annotation(tag_levels = 'a') & 
+figs3 = Fig_S3A + Fig_S3B + Fig_S3C + Fig_S3D + plot_annotation(tag_levels = 'A', tag_suffix = ')') & 
   theme(plot.tag = element_text(size = 16, face = "bold"))
 figs3
 
-ggsave(figs3,filename = "./Figs/FigS3_observed_physio_param_parasitemia_Treatment.png",units = "px", width = 3500, height = 3800)
+ggsave(figs3,filename = "./Figs/FigS3_observed_physio_param_infection_intensities.png",units = "px", width = 3500, height = 3800)
 
 ## Plotting effect sizes of 'infection stages' models
 ## ----------------------------------------------------------------------------- 
@@ -1295,11 +1277,12 @@ Fig_S4D = plot_model(
 
 ## Saving Figure S4
 ## ----------------------------------------------------------------------------- 
-figs4 = Fig_S4A + Fig_S4B + Fig_S4C + Fig_S4D + plot_annotation(tag_levels = 'a') & 
+figs4 = Fig_S4A + Fig_S4B + Fig_S4C + Fig_S4D + plot_annotation(tag_levels = 'A',
+                                                                tag_suffix = ')') & 
   theme(axis.text = element_text(size=14), plot.tag = element_text(size = 16, face = "bold"))
 figs4
 
-ggsave(figs4,filename = "./Figs/FigS4_effect_sizes_param_stages.png",units = "px", width = 3500, height = 3800)
+ggsave(figs4,filename = "./Figs/FigS4_effect_sizes_param_infection_stages.png",units = "px", width = 3500, height = 3800)
 
 ## Plotting effect sizes of 'infection intensities' models
 ## ----------------------------------------------------------------------------- 
@@ -1377,18 +1360,114 @@ Fig_S5D = plot_model(
           "Age (days) at T1",
           "Parasitemia 4 at T1")))
 
-## Figure S4
+## Figure S5: effect sizes for infection intensity models
 ## ----------------------------------------------------------------------------- 
-figs5 = Fig_S5A + Fig_S5B + Fig_S5C + Fig_S5D + plot_annotation(tag_levels = 'a') & 
+figs5 = Fig_S5A + Fig_S5B + Fig_S5C + Fig_S5D + plot_annotation(tag_levels = 'A',
+                                                                tag_suffix = ')') & 
   theme(axis.text = element_text(size=14), plot.tag = element_text(size = 16, face = "bold"))
 figs5
 
-ggsave(figs5, filename = "./Figs/FigS5_effect_sizes_param_intensities.png",units = "px", width = 3500, height = 3800)
+ggsave(figs5, filename = "./Figs/FigS5_effect_sizes_param_infection_intensities.png",units = "px", width = 3500, height = 3800)
+```
 
-## Additional figure: body condition at first sampling according to L. prevalence
+```{r robustness}
+## Robustness infection stages - summary graph of third sampled individuals
 ##------------------------------------------------------------------------------
 
-figs6 = ggplot(df)+
+# Loading the dataset
+
+third_sampled=readxl::read_excel("third_samples_indidividuals.xlsx")
+
+# Computing the number of days between second and third sampling
+
+third_sampled$Avg_third=third_sampled$Date.3-third_sampled$Date.2
+
+# Categorizing infection trends
+
+third_sampled$Stage.1_2=as.numeric(third_sampled$Infection_intensity.2)-as.numeric(third_sampled$Infection_intensity.1)
+
+third_sampled$Stage.2_3=as.numeric(third_sampled$Infection_intensity.3)-as.numeric(third_sampled$Infection_intensity.1)
+
+third_sampled$comp_inf_stages=NA 
+
+for(i in 1:length(third_sampled$Date.1)){
+  # cat(third_sampled$Stage.1_2[i], 'versus', third_sampled$Stage.2_3[i], "\n")
+  if(third_sampled$Infection_intensity.1[i] == 0 & third_sampled$Infection_intensity.2[i] == 0 &
+     third_sampled$Infection_intensity.3[i]== 0){
+    third_sampled$comp_inf_stages[i]="Unchanged_uninfected"
+    next
+  }
+  if(third_sampled$Stage.1_2[i] > 0 & third_sampled$Stage.1_2[i] == third_sampled$Stage.2_3[i]){
+  third_sampled$comp_inf_stages[i]="Unchanged_increase"
+  next
+  }
+  if(third_sampled$Stage.1_2[i] < 0 & third_sampled$Stage.1_2[i] == third_sampled$Stage.2_3[i]){
+    third_sampled$comp_inf_stages[i]="Unchanged_decrease"
+    next
+  }
+  if(third_sampled$Stage.1_2[i] == 0 & third_sampled$Stage.1_2[i] == third_sampled$Stage.2_3[i]){
+    third_sampled$comp_inf_stages[i]="Unchanged_stable"  
+    next
+  }
+  if(third_sampled$Stage.1_2[i] < 0 & third_sampled$Stage.2_3[i] > 0){
+    third_sampled$comp_inf_stages[i]="Decrease_to_Increase"  
+    next
+  }
+  if(third_sampled$Stage.1_2[i] < 0 & third_sampled$Stage.2_3[i] == 0){
+    third_sampled$comp_inf_stages[i]="Decrease_to_Stable" 
+    next
+  }
+  if(third_sampled$Stage.1_2[i] == 0 & third_sampled$Stage.2_3[i] < 0){
+    third_sampled$comp_inf_stages[i]="Stable_to_Decrease" 
+    next
+  }
+  if(third_sampled$Stage.1_2[i] == 0 & third_sampled$Stage.2_3[i] > 0){
+    third_sampled$comp_inf_stages[i]="Stable_to_Increase" 
+    next
+  }
+  if(third_sampled$Stage.1_2[i] > 0 & third_sampled$Stage.2_3[i] < 0){
+    third_sampled$comp_inf_stages[i]="Increase_to_decrease" 
+    next
+  }
+  if(third_sampled$Stage.1_2[i] > 0 & third_sampled$Stage.2_3[i] == 0){
+    third_sampled$comp_inf_stages[i]="Increase_to_stable" 
+    next
+  }
+  if(third_sampled$Stage.1_2[i] > 0 & third_sampled$Stage.2_3[i] > 0){
+    third_sampled$comp_inf_stages[i]="Unchanged_increase"  
+    next
+  }
+}
+  
+third_sampled$comp_inf_stages_summary=ifelse(third_sampled$comp_inf_stages %in% c("Unchanged_increase",
+                "Unchanged_decrease","Unchanged_stable",'Unchanged_uninfected'),"Unchanged","Differed")
+
+# Plotting infection intensity across three sampling
+
+strip=strip_themed(background_x = elem_list_rect(fill = ifelse(third_sampled$comp_inf_stages_summary %in% "Unchanged",'#30D40F','#D41C0F')))
+
+gg_trends=ggplot(third_sampled)+
+  geom_point(aes(Date.1,Infection_intensity.1))+
+  geom_point(aes(Date.2,Infection_intensity.2))+
+  geom_point(aes(Date.3,Infection_intensity.3))+
+  facet_wrap2(~`Ring no`,scales = "free_x", strip=strip)+
+  labs(title="Individual infection course - three-time sampled",x="Date",y="Infection intensity")
+
+gg_trends
+
+## Figure S6: Infection course - third sampled individuals
+##------------------------------------------------------------------------------
+
+ggsave(gg_trends,filename = "./Figs/FigS6_infection_trends_third_sampled.png",units = "px", width = 3700, height = 1700)
+
+
+```
+
+```{r body condition at T1 according to prevalence}
+## Figure S7: body condition at first sampling according to L. prevalence
+##------------------------------------------------------------------------------
+
+figs7 = ggplot(df)+
           aes(Prevalence1, body_condition.1)+
           geom_jitter(width=0.1)+
           geom_boxplot()+
@@ -1396,12 +1475,13 @@ figs6 = ggplot(df)+
           labs(x=bquote("Leucocytozoon prevalence at T"[1]),y=bquote("Body condition at T"[0]))+
           stat_compare_means(method = 't.test')
 
-figs6
+figs7
 
-ggsave(figs6,filename = "./Figs/FigS6_body_condition_1_to_prevalence.png",units = "px", width = 3700, height = 3700)
+ggsave(figs7,filename = "./Figs/FigS7_body_condition_T1_to_prevalence.png",units = "px", width = 3700, height = 3700)
+
 ```
 
-## Estimating measurment error of body temperature
+## Estimating measurement error of body temperature
 
 ```{r, message=F, warnings=F}
 ## Loading repeated temperature measures 
